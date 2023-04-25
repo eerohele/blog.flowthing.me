@@ -1,15 +1,16 @@
 ---
 title: Programming Clojure without tools.namespace.repl
 date: 2022-02-15
+status: draft
 ---
 
 >Pain is meant to wake us up. —Jim Morrison
 
 For my money, one of the best things about Clojure is the ability to [connect](https://clojure.org/reference/repl_and_main#_launching_a_socket_server) to a running program and poke at its innards. You can inspect and alter the state of your program, call or redefine any of its existing [definitions](https://clojure.org/reference/special_forms#def) (functions or macros, mostly), and, of course, make all-new definitions.
 
-It's not just that you *can* do it, either. It is, in fact, what you, as a Clojure programmer, do all day every day. Well, I hope you do, anyway. If not, well. You're missing out.
+It's not just that you *can* do it, either. It is, in fact, what you, as a Clojure programmer, do all day every day. I hope you do, anyway. If not, you're missing out.
 
-Anyway, let me try to describe the way it works in practice. To solve whatever problem you have at hand, you begin by subjecting the little grey cells in your head to the grueling ordeal of coming up with the most efficient way of applying functions to immutable data structures (all the while laying [in your hammock](https://www.youtube.com/watch?v=f84n5oFoZBc), of course). Then, you bash on your keyboard to persuade [your favorite Clojure editor](https://tutkain.flowthing.me) to get the parens just so, then use the facilities of said editor to send your glorious, beautiful new brainchild to the Clojure runtime, with a nicely worded note asking it to kindly start using this new piece of code you painstakingly prepared for it and discard the dusty old thing it's currently using.
+I'll try to describe how it works. To solve a problem, you apply functions to immutable data structures. Then, you bash on your keyboard to persuade [your favorite Clojure editor](https://tutkain.flowthing.me) to get the parens just so, then use the facilities of said editor to send your glorious, beautiful new brainchild to the Clojure runtime, with a nicely worded note asking it to kindly start using this new piece of code you painstakingly prepared for it and discard the dusty old thing it's currently using.
 
 The last bit — replacing old definitions in the runtime with new ones — is what I want to talk about in this article. The Clojure community has settled on two main ways to accomplish this task. In my experience, the most commonly used method is the so-called "[reloaded workflow](https://cognitect.com/blog/2013/06/04/clojure-workflow-reloaded)". The way this basically works is that you make your changes, save your files, then run a function called [`clojure.tools.namespace.repl/refresh`](https://clojure.github.io/tools.namespace/#clojure.tools.namespace.repl/refresh), which takes care of scrubbing your runtime clean of any previous definitions and installing new ones.
 
@@ -20,7 +21,7 @@ Let's take a look at a concrete example. Say you have two files: `db.clj` with t
 (ns app.db
   (:require [next.jdbc.sql :as sql]))
 
-(defn get-pokemon
+(defn all-pokemon
   [db]
   (sql/query db ["SELECT * FROM pokemon;"]))
 
@@ -28,7 +29,7 @@ Let's take a look at a concrete example. Say you have two files: `db.clj` with t
 (ns app.handler
   (:require [app.db :as db]))
 
-(defn get-pokemon
+(defn all-pokemon
   [{db :db}]
   {:status 200 :body (db/get-pokemon db)})
 ```

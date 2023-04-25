@@ -4,11 +4,11 @@ date: 2021-10-14
 description: What are transducers and why should I care? Here's an attempt to answer that question.
 ---
 
-So you're a Clojure programmer and you need to apply many transformation steps to a collection of items. Like, for example, you have a big list of things, and you need to remove some of them, transform others, then remove duplicates. What do you do?
+So you're a Clojure programmer and you need to apply more than one transformation step to a collection of items. Like, for example, you have a big list of things, and you need to remove some of them, transform others, then remove duplicates. What do you do?
 
 The stock approach is to reach for the thread-last macro (`->>`). It's a fine implement for skinning this particular cat, but, well... what if I told you there's another way? In Clojure, we have this thing called [transducers](https://clojure.org/reference/transducers). They were made for precisely this sort of thing.
 
-In this article, it is my noble aim to instill in you an intuition for transducers. We'll start by examining the building blocks of transducers to see how they work. We'll then make a couple of transducers of our own. Finally, we'll look at how you can apply your newfound knowledge of transducers in the real world.
+In this article, it's my noble aim to instill in you an intuition for transducers. We'll start by examining the building blocks of transducers to see how they work. We'll then make a couple of transducers of our own. Finally, we'll look at how you can apply your newfound knowledge of transducers in the real world.
 
 You're in the target audience of this article if:
 
@@ -19,7 +19,7 @@ If you already know how `reduce` works, you probably also know what a reducing f
 
 ## First steps
 
-To understand transducers, you must first understand reducing functions. So what's a reducing function?
+To understand transducers, you must first understand reducing functions. What's a reducing function?
 
 A **reducing function** is a function you can use as the first argument of  `reduce`. A reducing function takes an **accumulated result** and an **input** and returns a **new result**.
 
@@ -101,7 +101,7 @@ It worked! When we used `inc-transducer` with `+`, for each number in the input 
 
 However... what if there comes a day when we want to do something else than increment a number? That's all `inc-transducer` lets us do, increment numbers! What to do?
 
-I think it was Benjamin Franklin who used to say, "Functions are like violence: if it's not working, you're not using enough of it. Or them. Or whatever, you know." Stimulated by this enlightening adage, let us beat this problem into submission by employing an additional function. Instead of baking in `inc` as the function that transforms the input, let's make a new function. This new function takes any function and uses it to transform the input. Here's the new function:
+Benjamin Franklin used to say, "Functions are like violence: if it's not working, you're not using enough of it. Or them. Or whatever, you know." Stimulated by this enlightening adage, let us beat this problem into submission by employing an additional function. Instead of baking in `inc` as the function that transforms the input, let's make a new function. This new function takes any function and uses it to transform the input. Here's the new function:
 
 ```clojure
 (defn mapping
@@ -300,7 +300,7 @@ Note that `into` doesn't let you choose which reducing function to transform. Wi
 
 ### `sequence`
 
-Use `sequence` whenever you need your transformation to produce an incrementally computed (technically not [lazy](https://www.braveclojure.com/core-functions-in-depth/#Lazy_Seqs), though) sequence. There are many situations where you want an incrementally computed sequence. One is when you need to use the transformation result more than once. Check out this example:
+Use `sequence` whenever you need your transformation to produce an incrementally computed (technically not [lazy](https://www.braveclojure.com/core-functions-in-depth/#Lazy_Seqs), though) sequence. You often want an incrementally computed sequence. One is when you need to use the transformation result more than once. Check out this example:
 
 ```clojure
 (def xs

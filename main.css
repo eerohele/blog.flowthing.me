@@ -4,11 +4,51 @@
   --color-fg: #323232;
   --color-link: #205492;
   --color-link-hover: #2d83b9;
+
+  --color-source: hsla(0, 0%, 27%, 1);
+  --color-mystic-meridian: hsla(200, 25%, 47%, 1);
+  --color-turquoise-tempest: hsla(186, 77%, 33%, 1);
+  --color-olive-oasis: hsla(82, 70%, 20%, 1);
+  --color-ocean-spray: hsla(195, 50%, 33%, 1);
+  --color-crimson-cascade: hsla(335, 85%, 44%, 1);
+  --color-tangerine-tango: hsla(19, 70%, 51%, 1);
+  --color-saffron-sunset: hsla(20, 68%, 47%, 0.75);
+  --color-jungle-jade: hsla(96, 87%, 16%, 1);
+  --color-fuchsia-flare: hsla(332, 86%, 54%, 1);
+  --color-mauve-mirage: hsla(337, 100%, 70%, 0.15);
+  --color-slate-shadow: hsla(0, 0%, 50%, 1);
+  --color-chocolate-charisma: hsla(22, 100%, 22%, 1);
+  --color-frosty-leaf: hsl(127, 24%, 93%, 1);
+  --color-verdant-night: hsl(152, 59%, 19%, 1);
+
   --font-stack-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
     sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   --font-stack-serif: -apple-system-ui-serif, ui-serif, 'New York', Georgia, serif;
   --font-stack-monospace: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
     'Liberation Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #242936;
+    --color-fg: #cccac2;
+    --color-link: #73d0ff;
+    --color-link-hover: #73d0ff;
+
+    --color-source: var(--color-fg);
+    --color-comment: #b8cfe680;
+    --color-storage: #ffad66;
+    --color-support-function: #ffd173;
+    --color-constant-numeric: #ffcc66;
+    --color-keyword-control: #ffad66;
+    --color-entity-name-tag: #5ccfe6;
+    --color-entity-name-function: #dfbfff;
+    --color-punctuation-definition-tag: #5ccfe680;
+    --color-punctuation-definition-string: #5ccfe680;
+    --color-string: #d5ff80;
+    --color-keyword-other: #ffad66;
+    --color-keyword-other-mark: var(--color-support-function);
+  }
 }
 
 body {
@@ -25,16 +65,16 @@ img {
 }
 
 blockquote {
-  opacity: 0.75;
+  opacity: 0.9;
   border-left-width: 5px;
   border-left-style: solid;
-  border-left-color: gray;
+  border-left-color: lightgray;
   margin-left: 0;
   padding-left: 1rem;
 }
 
 strong {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 a:link {
@@ -51,14 +91,10 @@ a:visited:hover {
   color: var(--color-link-hover);
 }
 
-em {
-  font-family: var(--font-stack-serif);
-}
-
 main {
   margin: 0 auto;
   text-align: left;
-  max-width: 49em;
+  max-width: 51em;
   width: 100%;
 }
 
@@ -145,65 +181,132 @@ pre {
 }
 
 pre > code {
-  color: #454545;
+  color: var(--color-source);
   font-size: 1em;
   line-height: var(--baseline);
 }
 
-.comment {
-  color: #60859f;
+@media (prefers-color-scheme: light) {
+  .comment {
+    color: var(--color-mystic-meridian);
+  }
+
+  .storage {
+    color: var(--color-turquoise-tempest);
+  }
+
+  .support.function {
+    color: var(--color-olive-oasis)
+  }
+
+  .constant.numeric {
+    color: var(--color-ocean-spray);
+  }
+
+  .keyword.control {
+    color: var(--color-crimson-cascade);
+  }
+
+  .constant.string.symbol,
+  .constant.language,
+  .support.other.keyword {
+    color: var(--color-tangerine-tango);
+    background: transparent;
+  }
+
+  .constant.string.symbol .keyword.operator,
+  .support.other.keyword .keyword.operator {
+    color: var(--color-saffron-sunset);
+  }
+
+  .entity.name.tag,
+  .entity.other.attribute-name {
+    color: var(--color-jungle-jade);
+  }
+
+  .entity.name.function .source {
+    color: var(--color-fuchsia-flare);
+    background: var(--color-mauve-mirage);
+  }
+
+  .punctuation.definition.tag,
+  .punctuation.separator {
+    color: var(--color-slate-shadow);
+  }
+
+  .punctuation.definition.string {
+    color: var(--color-chocolate-charisma);
+  }
+
+  .string {
+    background: var(--color-frosty-leaf);
+    color: var(--color-verdant-night);
+    display: inline-block;
+    white-space: pre-line;
+  }
 }
 
-.storage {
-  color: #13889a;
-}
+@media (prefers-color-scheme: dark) {
+  .comment {
+    color: var(--color-comment);
+  }
 
-.support.function {
-  color: #456a10;
-}
+  .storage {
+    color: var(--color-storage);
+  }
 
-.constant.numeric {
-  color: #639;
-}
+  .support.function {
+    color: var(--color-support-function);
+  }
 
-.keyword.control {
-  color: #c1156e;
-}
+  .constant.numeric {
+    color: var(--color-constant-numeric);
+  }
 
-.constant.string.symbol,
-.support.other.keyword {
-  color: #c95d26;
-  background: transparent;
-}
+  .keyword.control {
+    color: var(--color-keyword-control);
+  }
 
-.constant.string.symbol .keyword.operator,
-.support.other.keyword .keyword.operator {
-  color: hsla(20, 68%, 47%, 0.75);
-}
+  .constant.string.symbol,
+  .constant.language,
+  .support.other.keyword {
+    color: var(--color-string);
+  }
 
-.entity.name.tag,
-.entity.other.attribute-name {
-  color: #447a05;
-}
+  .constant.string.symbol .keyword.operator,
+  .support.other.keyword .keyword.operator {
+    color: var(--color-string);
+  }
 
-.entity.name.function {
-  color: #ef347f;
-  background: hsla(337, 100%, 70%, 0.15);
-}
+  .entity.name.tag,
+  .entity.other.attribute-name {
+    color: var(--color-entity-name-tag);
+  }
 
-.punctuation.definition.tag,
-.punctuation.separator {
-  color: gray;
-}
+  .entity.name.function .source {
+    color: var(--color-entity-name-function);
+  }
 
-.punctuation.definition.string {
-  color: #703c00;
-}
+  .punctuation.definition.tag,
+  .punctuation.separator {
+    color: var(--color-punctuation-definition-tag);
+  }
 
-.string {
-  background: #e8f1e9;
-  color: #144d32;
-  padding: 0.3em 0;
+  .punctuation.definition.string {
+    color: var(--color-punctuation-definition-string);
+  }
+
+  .string {
+    color: var(--color-string);
+  }
+
+  .keyword.other {
+    color: var(--color-keyword-other);
+  }
+
+  .keyword.other.mark {
+    color: var(--color-support-function);
+  }
 }
 
 nav ul {
@@ -236,4 +339,21 @@ nav ul li a {
 footer {
   padding-top: calc(var(--baseline) * 2);
   padding-bottom: calc(var(--baseline) * 6);
+}
+
+table th {
+  font-weight: 400;
+  font-size: .9em;
+}
+
+table th {
+  padding: 0 .25em;
+}
+
+table td {
+  padding: .25em .5em;
+}
+
+table caption {
+  font-size: .9em;
 }
