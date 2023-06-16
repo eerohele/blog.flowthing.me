@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Eero Helenius</title>
+    <style type="text/css">
+      :root {
+        --baseline: 1.6em;
+        --color-bg: #fff;
+        --color-fg: #323232;
+        --color-link: #205492;
+        --color-link-hover: #2d83b9;
+
+        --color-source: hsla(0, 0%, 27%, 1);
+        --color-mystic-meridian: hsla(200, 25%, 47%, 1);
+        --color-turquoise-tempest: hsla(186, 77%, 33%, 1);
+        --color-olive-oasis: hsla(82, 70%, 20%, 1);
+        --color-ocean-spray: hsla(195, 50%, 33%, 1);
+        --color-crimson-cascade: hsla(335, 85%, 44%, 1);
+        --color-tangerine-tango: hsla(19, 70%, 51%, 1);
+        --color-saffron-sunset: hsla(20, 68%, 47%, 0.75);
+        --color-jungle-jade: hsla(96, 87%, 16%, 1);
+        --color-fuchsia-flare: hsla(332, 86%, 54%, 1);
+        --color-mauve-mirage: hsla(337, 100%, 70%, 0.15);
+        --color-slate-shadow: hsla(0, 0%, 50%, 1);
+        --color-chocolate-charisma: hsla(22, 100%, 22%, 1);
+        --color-frosty-leaf: hsl(127, 24%, 93%, 1);
+        --color-verdant-night: hsl(152, 59%, 19%, 1);
+
+        --font-stack-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
+          sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+        --font-stack-serif: -apple-system-ui-serif, ui-serif, 'New York', Georgia, serif;
+        --font-stack-monospace: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+          'Liberation Mono', monospace;
+      }
+
+      body {
+        background: var(--color-bg);
+        color: var(--color-fg);
+        font-family: var(--font-stack-sans-serif);
+        line-height: var(--baseline);
+        margin: 0 1em;
+        text-align: center;
+      }
+
+      h1 {
+        line-height: var(--baseline);
+        margin-bottom: 0;
+        margin-top: calc(var(--baseline) * 2);
+        font-size: 2em;
+        font-weight: 400;
+      }
+
+      p, ul, ol, blockquote {
+        font-size: 1em;
+      }
+
+      p {
+        hyphens: auto;
+        margin: var(--baseline) 0;
+      }
+
+      main {
+        display: flex;
+        flex-direction: row-reverse;
+        font-family: var(--font-stack-serif);
+        align-items: center;
+        justify-content: center;
+        margin-top: 5em;
+      }
+
+      main h1 {
+        margin-top: 0;
+      }
+
+      main article {
+        text-align: left;
+        max-width: 41em;
+      }
+
+      main aside {
+        margin-right: 1em;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <h1>About me</h1>
+        <p>My name is Eero Helenius. I live in Finland.</p>
+        <p>I've been writing computer programs for a living since around 2010. I've been paid money to write Ruby, XSLT, JavaScript, PHP, Scala, C#, F#, and other languages. Since 2017, I've done most of my programming using Clojure and ClojureScript.</p>
+        <p>I've worked extensively on both the backend and the frontend. Apart from writing code, I've always had somewhat of a DevOps slant. I've deployed programs into both on-premises environments and the cloud.</p>
+        <p>Perhaps more than specific technologies, however, I'm interested in figuring out the actual problems people want computer programs to solve.</p>
+        <p>In my free time, I enjoy climbing, gravel cycling, trail running, and making open-source <a href="https://github.com/eerohele/Tutkain">programming</a> <a href="https://github.com/eerohele/tab">tools</a> for my own use.</p>
+        <p>While I've made career in programming, my background is in humanities. I graduated from the University of Tampere with a degree in English philology in 2014. I wrote <a href="https://trepo.tuni.fi/handle/10024/95706">my master's thesis</a> on J.D. Salinger's <em>The Catcher in the Rye</em>.</p>
+      </article>
+      <aside>
+        <img src="me.jpg" width="580px"/>
+      </aside>
+    </main>
+  </body>
+</html>
