@@ -64,7 +64,6 @@
       main {
         display: flex;
         flex-direction: row-reverse;
-        font-family: var(--font-stack-serif);
         align-items: center;
         justify-content: center;
         margin-top: 5em;
@@ -88,6 +87,20 @@
           flex-direction: column;
         }
       }
+
+      a:link {
+        transition: color 150ms linear;
+      }
+
+      a:link,
+      a:visited {
+        color: var(--color-link);
+      }
+
+      a:link:hover,
+      a:visited:hover {
+        color: var(--color-link-hover);
+      }
     </style>
   </head>
   <body>
@@ -97,8 +110,8 @@
         <p>My name is Eero Helenius. I live in Finland.</p>
         <p>I've been writing computer programs for a living since around 2010. I've been paid money to write Ruby, XSLT, JavaScript, PHP, Scala, C#, F#, and other languages. Since 2017, I've done most of my programming using Clojure and ClojureScript.</p>
         <p>I've worked extensively on both the backend and the frontend. Apart from writing code, I've always had somewhat of a DevOps slant. I've deployed programs into both on-premises environments and the cloud.</p>
-        <p>Perhaps more than specific technologies, however, I'm interested in figuring out the actual problems people want computer programs to solve.</p>
-        <p>In my free time, I enjoy climbing, gravel cycling, trail running, and making open-source <a href="https://github.com/eerohele/Tutkain">programming</a> <a href="https://github.com/eerohele/tab">tools</a> for my own use.</p>
+        <p>The most rewarding part of making computer programs, to me, is figuring out the actual problems people want those programs to solve.</p>
+        <p>In my free time, I enjoy climbing, gravel cycling, trail running, and making <a href="https://github.com/eerohele/Tutkain">programming</a> <a href="https://github.com/eerohele/tab">tools</a> for my own use.</p>
         <p>While I've made career in programming, my background is in humanities. I graduated from the University of Tampere with a degree in English philology in 2014. I wrote <a href="https://trepo.tuni.fi/handle/10024/95706">my master's thesis</a> on J.D. Salinger's <em>The Catcher in the Rye</em>.</p>
       </article>
       <aside>
