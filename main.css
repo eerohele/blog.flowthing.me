@@ -1,25 +1,26 @@
 :root {
   --baseline: 1.6em;
+
   --color-bg: #fff;
   --color-fg: #323232;
   --color-link: #205492;
   --color-link-hover: #2d83b9;
 
   --color-source: hsla(0, 0%, 27%, 1);
-  --color-mystic-meridian: hsla(200, 25%, 47%, 1);
-  --color-turquoise-tempest: hsla(186, 77%, 33%, 1);
-  --color-olive-oasis: hsla(82, 70%, 20%, 1);
-  --color-ocean-spray: hsla(195, 50%, 33%, 1);
-  --color-crimson-cascade: hsla(335, 85%, 44%, 1);
-  --color-tangerine-tango: hsla(19, 70%, 51%, 1);
-  --color-saffron-sunset: hsla(20, 68%, 47%, 0.75);
-  --color-jungle-jade: hsla(96, 87%, 16%, 1);
-  --color-fuchsia-flare: hsla(332, 86%, 54%, 1);
-  --color-mauve-mirage: hsla(337, 100%, 70%, 0.15);
-  --color-slate-shadow: hsla(0, 0%, 50%, 1);
-  --color-chocolate-charisma: hsla(22, 100%, 22%, 1);
-  --color-frosty-leaf: hsl(127, 24%, 93%, 1);
-  --color-verdant-night: hsl(152, 59%, 19%, 1);
+  --bg-color-defn-name: hsla(337, 100%, 70%, 0.15);
+  --bg-color-string: hsla(126, 23%, 73%, 0.27);
+  --color-comment: hsla(200, 25%, 47%, 1);
+  --color-constant-numeric: hsla(195, 50%, 33%, 1);
+  --color-defn-name: hsl(336, 85%, 57%);
+  --color-defn: hsl(291, 88%, 42%, 1);
+  --color-dispatch: hsla(7, 43%, 58%, 1);
+  --color-function-call: hsla(85, 74%, 24%, 1);
+  --color-function: hsla(82, 70%, 20%, 1);
+  --color-keyword: hsla(20, 68%, 47%, 1);
+  --color-special-form: hsla(332, 86%, 54%, 1);
+  --color-storage: hsla(186, 77%, 33%, 1);
+  --color-string-quote: hsla(32, 100%, 22%, 1);
+  --color-string: hsla(152, 59%, 19%, 1);
 
   --font-stack-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
     sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
@@ -36,18 +37,21 @@
     --color-link-hover: #73d0ff;
 
     --color-source: var(--color-fg);
+    --bg-color-defn-name: transparent;
+    --bg-color-string: transparent;
     --color-comment: #b8cfe680;
-    --color-storage: #ffad66;
-    --color-support-function: #ffd173;
     --color-constant-numeric: #ffcc66;
-    --color-keyword-control: #ffad66;
-    --color-entity-name-tag: #5ccfe6;
-    --color-entity-name-function: #dfbfff;
-    --color-punctuation-definition-tag: #5ccfe680;
-    --color-punctuation-definition-string: #5ccfe680;
+    --color-defn: #ffad66;
+    --color-defn-name: #ffd173;
+    --color-dispatch: #f29e74;
+    --color-function-call: #ffd173;
+    --color-function: #ffd173;
+    --color-keyword: #ffad66;
+    --color-punctuation-accessor: #f29e74;
+    --color-special-form: #ffad66;
+    --color-storage: #ffad66;
+    --color-string-quote: var(--color-string);
     --color-string: #d5ff80;
-    --color-keyword-other: #ffad66;
-    --color-keyword-other-mark: var(--color-support-function);
   }
 }
 
@@ -65,7 +69,7 @@ img {
 }
 
 blockquote {
-  opacity: 0.9;
+  opacity: 0.85;
   border-left-width: 5px;
   border-left-style: solid;
   border-left-color: lightgray;
@@ -92,7 +96,7 @@ a:visited:hover {
 }
 
 main {
-  margin: 0 auto;
+  margin: 0 0 0 5em;
   text-align: left;
   max-width: 51em;
   width: 100%;
@@ -157,6 +161,7 @@ p, ul, ol, blockquote {
 
 p {
   hyphens: auto;
+  -webkit-hyphens: auto;
   margin: var(--baseline) 0;
 }
 
@@ -169,7 +174,6 @@ h6 + p {
 }
 
 code {
-  font-size: 0.95em;
   font-family: var(--font-stack-monospace);
 }
 
@@ -186,127 +190,60 @@ pre > code {
   line-height: var(--baseline);
 }
 
-@media (prefers-color-scheme: light) {
-  .comment {
-    color: var(--color-mystic-meridian);
-  }
-
-  .storage {
-    color: var(--color-turquoise-tempest);
-  }
-
-  .support.function {
-    color: var(--color-olive-oasis)
-  }
-
-  .constant.numeric {
-    color: var(--color-ocean-spray);
-  }
-
-  .keyword.control {
-    color: var(--color-crimson-cascade);
-  }
-
-  .constant.string.symbol,
-  .constant.language,
-  .support.other.keyword {
-    color: var(--color-tangerine-tango);
-    background: transparent;
-  }
-
-  .constant.string.symbol .keyword.operator,
-  .support.other.keyword .keyword.operator {
-    color: var(--color-saffron-sunset);
-  }
-
-  .entity.name.tag,
-  .entity.other.attribute-name {
-    color: var(--color-jungle-jade);
-  }
-
-  .entity.name.function .source {
-    color: var(--color-fuchsia-flare);
-    background: var(--color-mauve-mirage);
-  }
-
-  .punctuation.definition.tag,
-  .punctuation.separator {
-    color: var(--color-slate-shadow);
-  }
-
-  .punctuation.definition.string {
-    color: var(--color-chocolate-charisma);
-  }
-
-  .string {
-    background: var(--color-frosty-leaf);
-    color: var(--color-verdant-night);
-    display: inline-block;
-    white-space: pre-line;
-  }
+.punctuation {
+  opacity: .5;
 }
 
-@media (prefers-color-scheme: dark) {
-  .comment {
-    color: var(--color-comment);
-  }
+.punctuation.string, .punctuation.comma {
+  background: transparent;
+  color: var(--color-string-quote);
+  opacity: .75;
+}
 
-  .storage {
-    color: var(--color-storage);
-  }
+.constant.numeric {
+  color: var(--color-constant-numeric);
+}
 
-  .support.function {
-    color: var(--color-support-function);
-  }
+.variable.function {
+  color: var(--color-function);
+}
 
-  .constant.numeric {
-    color: var(--color-constant-numeric);
-  }
+.comment {
+  color: var(--color-comment);
+}
 
-  .keyword.control {
-    color: var(--color-keyword-control);
-  }
+.constant.other.keyword {
+  color: var(--color-keyword);
+}
 
-  .constant.string.symbol,
-  .constant.language,
-  .support.other.keyword {
-    color: var(--color-string);
-  }
+.string {
+  background: var(--bg-color-string);
+  color: var(--color-string);
+  display: inline-block;
+  white-space: pre-line;
+}
 
-  .constant.string.symbol .keyword.operator,
-  .support.other.keyword .keyword.operator {
-    color: var(--color-string);
-  }
+.keyword.operator.macro {
+  color: var(--color-dispatch);
+}
 
-  .entity.name.tag,
-  .entity.other.attribute-name {
-    color: var(--color-entity-name-tag);
-  }
+.special-form {
+  color: var(--color-special-form);
+}
 
-  .entity.name.function .source {
-    color: var(--color-entity-name-function);
-  }
+.function.declaration {
+  color: var(--color-defn);
+}
 
-  .punctuation.definition.tag,
-  .punctuation.separator {
-    color: var(--color-punctuation-definition-tag);
-  }
+.function-call .function {
+  color: var(--color-function-call);
+}
 
-  .punctuation.definition.string {
-    color: var(--color-punctuation-definition-string);
-  }
-
-  .string {
-    color: var(--color-string);
-  }
-
-  .keyword.other {
-    color: var(--color-keyword-other);
-  }
-
-  .keyword.other.mark {
-    color: var(--color-support-function);
-  }
+.entity.entity.name.function {
+  background: var(--bg-color-defn-name);
+  color: var(--color-defn-name);
+  display: inline-block;
+  white-space: pre-line;
 }
 
 nav ul {
@@ -337,8 +274,10 @@ nav ul li a {
 }
 
 footer {
+  margin-left: 5em;
   padding-top: calc(var(--baseline) * 2);
   padding-bottom: calc(var(--baseline) * 6);
+  text-align: left;
 }
 
 table th {
@@ -356,4 +295,40 @@ table td {
 
 table caption {
   font-size: .9em;
+}
+
+.footnote-ref {
+  line-height: 0;
+}
+
+.footnote-ref a {
+  text-decoration: none;
+}
+
+.entity.name.function .source {
+  display: inline-block;
+  white-space: pre-line;
+}
+
+aside {
+  float: right;
+  clear: right;
+  width: 21em;
+  margin-right: -336px;
+  margin-top: -7em;
+  border-left-width: 3px;
+  border-left-style: solid;
+  border-left-color: lightgray;
+  padding-left: 1em;
+  font-size: 90%;
+  opacity: 0.85;
+}
+
+@media screen and (max-width: 820px) {
+  aside {
+    float: none;
+    margin-left: 1.6em;
+    margin-right: 0;
+    width: 90%;
+  }
 }
