@@ -1,5 +1,5 @@
 ---
-title: Seque
+title: seque
 # description: WS, CSRF, XSS, SOP, CORS, CSP… WTF?
 date: 2022-02-20
 status: draft
@@ -15,10 +15,10 @@ To get started, let's take a look at [the docstring for `clojure.core/seque`](ht
 >
 >Note that reading from a seque can block if the reader gets ahead of the producer.
 
-The docstring says that `seque` creates a "queued seq". To begin with, let's remind ourselves what a seq is. A **seq** is an abstraction that lets us treat all kinds of collections as **sequences of elements**. The seq abstraction is what lets us call functions like `first` on a collection without having to think about its type.
+The docstring says that `seque` creates a "queued seq". To begin with, let's remind ourselves what a seq is. A [**seq**](https://clojure.org/reference/sequences) is an abstraction that lets us treat all kinds of collections as **sequences of elements**. The seq abstraction is what lets us call functions like `first` on a collection without having to think about the type of the collection.
 
 ```clojure
-;; Hash map
+;; Map
 (first {:a 1 :b 1})
 ;;=> [:a 1]
 
@@ -57,11 +57,12 @@ The docstring says `seque` expects a *presumably lazy* seq. What does that mean?
 Now that we know that we should give `seque` a lazy seq and we know what one is, we can try using `seque`. First, let's try giving `seque` a lazy seq:
 
 ```clojure
-;; Let's first tell Clojure to only print the first 16 elements of any
-;; collection. This way we avoid attempting to print a very long (or infinite)
+;; Let's first tell Clojure to only print the first eight elements of a
+;; collection. This is to avoid attempting to print a very long (or infinite)
 ;; collection of elements.
 (set! *print-length* 8)
 
+;; Call seque on a lazy seq
 (seque (range 64))
 ;;=> (0 1 2 3 4 5 6 7 ...)
 ```
@@ -78,7 +79,9 @@ Not terribly exciting. We just get back the original range we gave to `seque`. I
 ;; Elapsed time: 0.095492 msecs
 ```
 
-Realizing a range takes very little time, though. Doing it in the background isn't useful. Maybe we should try calling it on a seq that takes longer to realize. To do that, let's first make a slow function. Here's `slow-inc`, a function that increments a number, but takes its sweet time doing it:
+The reason we see no difference is that realizing a range takes very little time. Doing it in the background isn't useful.
+
+Maybe we should try calling `seque` on a seq that takes longer to realize. To do that, let's first make a slow function. Here's `slow-inc`, a function that increments a number, but takes its sweet time doing it:
 
 ```clojure
 (defn slow-inc
@@ -93,7 +96,7 @@ Realizing a range takes very little time, though. Doing it in the background isn
 ;;=> "Elapsed time: 1004.38591 msecs"
 ```
 
-Cool! We can now use `slow-inc` to write a function that returns a lazy seq of numbers:
+Cool! We can now use `slow-inc` to write a function that returns a lazy seq of integers:
 
 ```clojure
 (defn lazy-nums
@@ -108,7 +111,24 @@ Cool! We can now use `slow-inc` to write a function that returns a lazy seq of n
 
 Oh yeah, nice and slow.
 
-to build a lazy seq we can then use with `seque`.
+We now have a function that returns a lazy seq that yields elements at a rate of one per second. We can now see what happens if we give a lazy seq made by `lazy-nums` to `seque`.
+
+```clojure
+(do
+  ;; Set off a seque that produces at most five elements from its input before
+  ;; stopping to wait for the consumer.
+  (def seque-of-numbers (seque 5 (lazy-nums)))
+
+  ;; Do something else while the seque produces items.
+  (Thread/sleep 5000)
+
+  ;; Take the first five elements from the seque.
+  (time (doall (take 5 seque-of-numbers)))
+  ;; "Elapsed time: 0.185669 msecs"
+  ;;=> (1 2 3 4 5)
+  ,,,)
+```
+
 
 ```clojure
 (def seque-of-numbers
