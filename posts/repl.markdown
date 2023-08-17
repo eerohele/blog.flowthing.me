@@ -1,6 +1,6 @@
 ---
-title: The Anatomy of a REPL
-date: 2023-08-07
+title: The anatomy of a read-eval-print loop
+date: 2023-08-16
 status: draft
 ---
 
@@ -13,20 +13,77 @@ status: draft
 >
 >—Rich Hickey, "A History of Clojure" (2020)
 
-REPL is short for "read-eval-print loop". Many programming languages purport [to](https://docs.oracle.com/en/java/javase/20/jshell/introduction-jshell.html#GUID-630F27C8-1195-4989-9F6B-2C51D46F52C8) [have](https://nodejs.org/api/repl.html#repl) [one](https://www.jetbrains.com/help/idea/kotlin-repl.html#kotlin-repl). Here's a rough sketch of how the REPL works in most languages:
+```svgbob
+             +----+                                           +-----+
+.------------| IN |                              .--chars --> | OUT |
+|            +----+                              |            +-----+
+|                                                |
+v                                                |
+|            .---.            .---.            .---.          .---.
+*--chars --> | R | --data --> | E | --data --> | P | -------> | L |
+|            '---'            '---'            '---'          '---'
+|                                                               |
+'-------------------------------<-------------------------------'
+```
+
+REPL is short for "read-eval-print loop". Many programming languages purport [to](https://docs.oracle.com/en/java/javase/20/jshell/introduction-jshell.html#GUID-630F27C8-1195-4989-9F6B-2C51D46F52C8) [have](https://nodejs.org/api/repl.html#repl) [one](https://www.jetbrains.com/help/idea/kotlin-repl.html#kotlin-repl). Here's a rough sketch of how what most of these languages call a REPL works:
 
 1. **Read** a chunk of user input into memory.
 2. **Evaluate** the read string.
 3. **Print** a string representation of the evaluation result.
 4. **Loop** back to the beginning.
 
-It is rare that you are able to (or indeed interested in) altering any of these steps. What would it even mean to swap out the "read" step of a Node.js or Kotlin REPL for something else?
+It is rare that you are able to (or, indeed, interested in) altering any of these steps. What would it even mean to swap out the "read" step of a Node.js or Kotlin REPL for something else?
 
-In [Clojure](https://clojure.org) and other [Lisps](https://en.wikipedia.org/wiki/Lisp_(programming_language)), the R, E, and P in REPL are discrete and exchangeable steps. You can, for example, make an R that throws an exception if the code you give it uses a deprecated function. You can make an E that evaluates everything it receives in the context of the [dynamic bindings of your preference](https://github.com/clojure/clojure/blob/2a058814e5fa3e8fb630ae507c3fa7dc865138c6/src/clj/clojure/main.clj#L82C1-L95). Or, you can make a P that, instead of printing the evaluation result into [standard output](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdout), stores all evaluation results in a database, or sends the result to the data visualization tool of your choice.
+In [Clojure](https://clojure.org) and other [Lisps](https://en.wikipedia.org/wiki/Lisp_(programming_language)), however, R, E, and P are discrete and exchangeable steps. You can, for example, make an R that throws an exception if the code you give it uses a deprecated function. You can make an E that evaluates the code you give it in the context of the [dynamic bindings of your preference](https://github.com/clojure/clojure/blob/2a058814e5fa3e8fb630ae507c3fa7dc865138c6/src/clj/clojure/main.clj#L82C1-L95). Or, you can make a P that, instead of printing the evaluation result into [standard output](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdout), puts all evaluation results into a [database](https://github.com/quoll/asami), or sends the result to the data visualization tool [of](https://github.com/eerohele/tab) [your](https://github.com/djblue/portal) [choice](https://clojure.org/news/2023/04/28/introducing-morse).
 
-The ability to swap in your own R, E and P mean that you can even reappropriate a Lisp REPL into something else altogether. You can turn one into a unit-aware calculator, an interpreter for a completely different language, or an interface for interacting with a large language model.
+The ability to swap in your own R, E and P mean that you can even reappropriate a Lisp REPL into something else altogether. You can turn one into a unit-aware calculator, an interface for interacting with a large language model, or an interpreter for another programming language.
 
-Let's first take a look at what each steps does. Then, we'll move on to why it matters.
+<!-- REPLs all the way down -->
+
+Another defining feature of Lisp REPLs is that you can run a new REPL from within an existing REPL. Here's an example:
+
+```clojure
+(clojure.main/repl
+  :prompt (fn [] (println "What's your name? "))
+  :read (fn [_ _] (read-line))
+  :eval (fn [name] (printf "Hello, %s!\n" name)))
+```
+
+If you're already sitting on a REPL and run that code, you will find yourself sitting on a new REPL that will ask you for your name and never give up.
+
+That REPLs can nest like [Matryoshka dolls](https://en.wikipedia.org/wiki/Matryoshka_doll) requires that the input of the R in the top-level REPL (the outermost doll) be unadorned with any sort of framing carrying (usually) metadata related to the code. That is, the input to R must be:
+
+```clojure
+(inc 1)
+````
+
+Instead of something like this:
+
+```clojure
+{:op "eval" :code "(inc 1)" :ns "user" :file "user.clj" :line "3" :column "1"}
+```
+
+If the input to R is enfolded in an envelope like this, you are not sitting at a REPL, but instead a remote procedure call (RPC) server [of some sort](https://nrepl.org/nrepl/1.0/index.html).
+
+If you are, that is not a bad thing. RPC-style message framing has many benefits: being able to bundle input and metadata makes it straightforward to assign file, line and column number for use in error messages. Specifically to Clojure, having easy access to both code and the [namespace](https://clojure.org/reference/namespaces) in whose context to both read (R) and evaluate (E) said code is very helpful.
+
+```clojure
+=> {:op "eval" :code "(read)"}
+<= {:status #{:need-input}}
+=> {:op "stdin" :stdin "(inc 1)"}
+<= {:ns "user" :value "(inc 1)"}
+```
+
+<!--
+If having a REPL as your initial communication protocol is a Matryoshka doll, having an RPC server instead is a Matryoshka doll filled with concrete.
+-->
+
+
+
+<!--
+Reading needs ns context, too, because of e.g. auto-qualified keywords
+  -->
 
 <!--
 You can make your own REPL that throws an exception if the form you try to evaluate calls a deprecated function, for example. Or, instead of printing the evaluation result into the [standard output](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdout) stream, you can make a REPL that stores all evaluation results in a database, or sends the result to the data visualization tool of your choice.
