@@ -332,3 +332,12 @@ aside {
     width: 90%;
   }
 }
+
+code:has(.svgbob) {
+  display: block;
+  text-align: center;
+}
+
+.svgbob {
+  margin: 0 auto;
+}
