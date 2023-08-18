@@ -114,11 +114,15 @@ Execution error at user/eval1$fn (REPL:3).
 EOF while reading
 ```
 
+The ability to `read` in this manner is only available to languages that [use the same data structures for both code and data](https://www.expressionsofchange.org/dont-say-homoiconic). Languages such as Java or Node.js therefore do not support "reading" in the sense Lisps do. If they did, if you typed `1 + 2 + 3` into a Node.js interpreter, Node.js would turn the string `1 + 2 + 3` into [a JavaScript array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) of items you could manipulate using the array manipulation methods built into JavaScript before handing the code off for evaluation (E).
+
 ## E is for evaluate
 
 <!-- EVAL -->
 ```clojure
 (defn square
+  ;; :test metadata is not a common way of writing Clojure tests. I use it here
+  ;; because it's makes for a self-contained and colocated example.
   {:test (fn [] (assert (= 3 (square 2))))}
   [x]
   (* x x))
@@ -138,8 +142,6 @@ EOF while reading
         form)
       ret)))
 ```
-
-The ability to `read` in this manner is only available to languages that [use the same data structures for both code and data](https://www.expressionsofchange.org/dont-say-homoiconic). Languages such as Java or Node.js therefore do not support "reading" in the sense Lisps do. If they did, if you typed `1 + 2 + 3` into a Node.js interpreter, Node.js would turn the string `1 + 2 + 3` into [a JavaScript array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) of items you could manipulate using the array manipulation methods built into JavaScript before handing the code off for evaluation (E).
 
 <!--
   Mention input/output stream rebinding!
