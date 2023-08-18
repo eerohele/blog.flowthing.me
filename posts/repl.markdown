@@ -35,7 +35,7 @@ REPL is short for "read-eval-print loop". Many programming languages purport [to
 
 It is rare that you are able to (or, indeed, interested in) altering any of these steps. What would it even mean to swap out the "read" step of a Node.js or Kotlin REPL for something else?
 
-In [Clojure](https://clojure.org) (and other [Lisps](https://en.wikipedia.org/wiki/Lisp_(programming_language))), however, R, E, and P are discrete, exchangeable steps. You can, for example, make an R that rewrites parts of your code before handing it off to E. You can make an E that evaluates the code you give it in the context of your choosing. Or, you can make a P that, instead of printing the evaluation result into [standard output](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdout), puts it into a [database](https://github.com/quoll/asami), or sends it to the data visualization tool [of](https://github.com/eerohele/tab) [your](https://github.com/djblue/portal) [choice](https://clojure.org/news/2023/04/28/introducing-morse).
+In [Clojure](https://clojure.org) (and other [Lisps](https://en.wikipedia.org/wiki/Lisp_(programming_language))), however, R, E, and P are discrete, exchangeable steps. You can, for example, make an R that rewrites parts of your code before handing it off to E. You can make an E that, every time you redefine a function, runs the tests for that function. Or, you can make a P that, instead of printing the evaluation result into [standard output](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdout), puts it into a [database](https://github.com/quoll/asami), or sends it to the data visualization tool [of](https://github.com/eerohele/tab) [your](https://github.com/djblue/portal) [choice](https://clojure.org/news/2023/04/28/introducing-morse).
 
 `<<<INTRO>>>`
 
@@ -49,9 +49,9 @@ Here's an example of a form:
 (inc 1)
 ```
 
-This form is [Clojure data structure](https://clojure.org/reference/data_structures) representing a piece of code. This particular form is a [persistent list](https://clojure.org/reference/data_structures#Lists). Its first element is a [symbol](https://clojure.org/reference/reader#_symbols) naming the function `inc`. The second element of the list is the number `1`, an argument to that function.
+This form is [Clojure data structure](https://clojure.org/reference/data_structures) representing a piece of code. This particular form is an [immutable list](https://clojure.org/reference/data_structures#Lists). The first element of the list is a [symbol](https://clojure.org/reference/reader#_symbols) naming the function `inc`. The second element of the list is the number `1`, an argument to that function.
 
-Because the form is a data structure, you can manipulate it using the functions and macros in [the Clojure standard library](https://clojure.org/api/cheatsheet) before handing it off to E for evaluation. For example, you can change the `inc` (increment) to `dec` (decrement):
+Because the form is a data structure, you can manipulate it using the functions and macros in [the Clojure standard library](https://clojure.org/api/cheatsheet). For example, you can change the `inc` (increment) to `dec` (decrement):
 
 ```clojure
 user=> (cons 'dec (rest '(inc 1)))
@@ -70,17 +70,15 @@ user=> (read (java.io.PushbackReader. (java.io.StringReader. "(+ 1 2 3)")))
 (+ 1 2 3)
 ```
 
-By default, R passes its return value to E as is. Since in Lisp REPLs the R is customizable, we can make a REPL whose R does a bit more.
+By default, R passes its return value to E as is. Since in Lisp REPLs the R is customizable, we can make a REPL whose R does a bit more. Clojure has a function called `tap>` that's often (but not exclusively) used for [inspecting values at runtime](https://dev.to/hlship/debugging-clojure-at-the-repl-using-tap-2pm5). The `tap>` function does not return the value of its argument, though. That makes it a bit tricky to use in some situations, such as in threading macros.
 
-Clojure has a function called `tap>` that's often (but not exclusively) used for [inspecting values at runtime](https://dev.to/hlship/debugging-clojure-at-the-repl-using-tap-2pm5). The `tap>` function does not return the value of its argument, though, which makes it a bit tricky to use in some situations, such as in threading macros.
-
-We could make our own version of `tap>` that returns its argument. However, ensuring that our custom function is in scope without having to use a fully-qualified path or requiring it in every namespace is cumbersome. Instead, we'll make a REPL whose R supports a special symbol of our own devising, `?>`. Whenever our special R sees `?>` somewhere in the code, it rewrites that part of the code to call `tap>` such that it returns its argument.
+We could make our own version of `tap>` that returns its argument. However, it would be more cumbersome to use. Instead, we'll make a REPL whose R supports a special symbol of our own devising, `?>`. Whenever our special R sees `?>` somewhere in the code, it rewrites that part of the code to call `tap>` such that it returns its argument.
 
 ```clojure
 user=> (clojure.main/repl
          :read
          (fn [request-prompt request-exit]
-           ;; Call the default R implementation.
+           ;; clojure.main/repl-read is read plus some bells and whistles.
            (let [form (clojure.main/repl-read request-prompt request-exit)]
              (clojure.walk/prewalk
                (fn [sub-form]
@@ -99,9 +97,9 @@ user=> (?> (inc 2))
 3 ; Evaluation result
 ```
 
-Even though a Clojure REPL reads Clojure forms by default, there's nothing stopping you from making an R that reads from its input on a by-character or by-line basis.
+Aside from using R to rewrite code, you can use it to change the orientation in which it reads code. A Clojure REPL reads Clojure forms by default, but there's nothing stopping you from making an R that reads from its input on a by-character or by-line basis.
 
-A standard Clojure REPL does not stop reading when it encounters a newline. This means that if you type an incomplete form such as `(inc 1` into a REPL, instead of throwing a syntax error, Clojure waits for additional input, expecting to encounter the closing parenthesis eventually.
+A standard Clojure REPL does not stop reading when it encounters a newline. This means that if you type an incomplete form such as `(inc 1` (missing close parenthesis) into a REPL, instead of throwing a syntax error, Clojure waits for additional input, expecting to encounter the closing parenthesis eventually.
 
 If a syntax error is what you'd prefer, you make a REPL that reads forms in a line-oriented fashion:
 
@@ -115,6 +113,8 @@ user=> (inc 1
 Execution error at user/eval1$fn (REPL:3).
 EOF while reading
 ```
+
+## E is for evaluate
 
 <!-- EVAL -->
 ```clojure
