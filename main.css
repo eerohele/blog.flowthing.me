@@ -184,6 +184,15 @@ p > code {
   border: 1px solid #ddd;
   border-radius: 5px;
   padding: .1em .3em;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  p > code {
+    opacity: .9;
+    background: #343b4d;
+    border-color: #4c5364;
+  }
 }
 
 pre {
@@ -326,4 +335,23 @@ code:has(.svgbob) {
 
 .svgbob {
   margin: 0 auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .svgbob rect.backdrop {
+    fill: var(--color-bg) !important;
+    stroke: var(--color-bg) !important;
+  }
+
+  .svgbob .nofill {
+    fill: var(--color-bg) !important;
+  }
+
+  .svgbob line, .svgbob path, .svgbob circle, .svgbob rect, .svgbob polygon {
+    stroke: var(--color-fg) !important;
+  }
+
+  .svgbob text, .svgbob .filled {
+    fill: var(--color-fg) !important;
+  }
 }
