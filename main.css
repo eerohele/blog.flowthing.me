@@ -21,6 +21,7 @@
   --color-storage: hsla(186, 77%, 33%, 1);
   --color-string-quote: hsla(32, 100%, 22%, 1);
   --color-string: hsla(152, 59%, 19%, 1);
+  --color-error: #d93e39;
 
   --font-stack-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
     sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
@@ -52,6 +53,7 @@
     --color-storage: #ffad66;
     --color-string-quote: var(--color-string);
     --color-string: #d5ff80;
+    --color-error: #ff4a44;
   }
 }
 
@@ -96,10 +98,9 @@ a:visited:hover {
 }
 
 main {
-  margin: 0 0 0 5%;
+  margin: 0 5% 0 5%;
   text-align: left;
   max-width: 51em;
-  width: 100%;
 }
 
 article header {
@@ -107,7 +108,7 @@ article header {
   font-size: 85%;
 }
 
-article header p time::after {
+article header p span:not(:last-of-type) time::after {
   content: ' • ';
 }
 
@@ -144,7 +145,7 @@ h2 {
 h3 {
   margin-top: var(--baseline);
   margin-bottom: 0;
-  font-size: 1.4em;
+  font-size: 1.3em;
 }
 
 header {
@@ -208,7 +209,7 @@ pre > code {
   line-height: var(--baseline);
 }
 
-.punctuation {
+.punctuation, .invalid.illegal {
   opacity: .5;
 }
 
@@ -264,6 +265,10 @@ pre > code {
   white-space: pre-line;
 }
 
+.stderr {
+  color: var(--color-error);
+}
+
 nav ul {
   padding: 0;
   list-style: none;
@@ -292,7 +297,7 @@ nav ul li a {
 }
 
 footer {
-  margin-left: 5em;
+  margin: 0 5%;
   padding-top: calc(var(--baseline) * 2);
   padding-bottom: calc(var(--baseline) * 6);
   text-align: left;

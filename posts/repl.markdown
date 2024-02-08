@@ -1,13 +1,8 @@
 ---
-title: The anatomy of a read-eval-print loop
-date: 2023-08-16
-status: draft
+title: The anatomy of a REPL
+date: 2024-02-20
+description: What sets Lisp REPLs apart from the interactive shells many other languages have?
 ---
-
-<!--
-- Clojure, eval->print even more powerful because of non-opaque (limpid, lucid, plain) data
-- Clojure has datafication, a process that turns an opaque object into plain data
--->
 
 >It is common to conflate any interactive language prompt with a REPL, but I think it is an important aspect of Lisp REPLs that they are a composition of  read-eval-print.
 >
@@ -15,7 +10,7 @@ status: draft
 
 ```svgbob
               +----+                                           +-----+
- .------------| IN |                              .--chars --> | OUT |
+ .--chars-----| IN |                              .--chars --> | OUT |
  |            +----+                              |            +-----+
  |                                                |
  v                                                |
@@ -26,158 +21,173 @@ status: draft
  '-------------------------------<-------------------------------'
 ```
 
-REPL is short for "read-eval-print loop". Many programming languages purport [to](https://docs.oracle.com/en/java/javase/20/jshell/introduction-jshell.html#GUID-630F27C8-1195-4989-9F6B-2C51D46F52C8) [have](https://nodejs.org/api/repl.html#repl) [one](https://www.jetbrains.com/help/idea/kotlin-repl.html#kotlin-repl). Here's a rough sketch of how what most of these languages call a REPL works:
+REPL is short for "read-eval-print loop". Many programming languages [purport](https://docs.oracle.com/en/java/javase/20/jshell/introduction-jshell.html#GUID-630F27C8-1195-4989-9F6B-2C51D46F52C8) to [have](https://nodejs.org/api/repl.html#repl) [one](https://www.jetbrains.com/help/idea/kotlin-repl.html#kotlin-repl). Here's a rough sketch of how what most of these languages call a REPL works:
 
 1. **Read** a chunk of user input into memory.
-2. **Evaluate** the read string.
-3. **Print** a string representation of the evaluation result.
+2. **Evaluate** the read input.
+3. **Print** a string representation of the evaluation result into the standard output.
 4. **Loop** back to the beginning.
 
 It is rare that you are able to (or, indeed, interested in) altering any of these steps. What would it even mean to swap out the "read" step of a Node.js or Kotlin REPL for something else?
 
 In [Clojure](https://clojure.org) (and other [Lisps](https://en.wikipedia.org/wiki/Lisp_(programming_language))), however, R, E, and P are discrete, exchangeable steps. You can, for example, make an R that rewrites parts of your code before handing it off to E. You can make an E that, every time you redefine a function, runs the tests for that function. Or, you can make a P that, instead of printing the evaluation result into [standard output](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdout), puts it into a [database](https://github.com/quoll/asami), or sends it to the data visualization tool [of](https://github.com/eerohele/tab) [your](https://github.com/djblue/portal) [choice](https://clojure.org/news/2023/04/28/introducing-morse).
 
-`<<<INTRO>>>`
+In this article, I will examine what sets a Lisp REPL apart from an interactive language shell and explore some of the opportunities a having access to a REPL offers. I will use Clojure in all of the examples, because that's the Lisp I'm most familiar with.
+
+I will give examples of how and why you might customize each of R, E, and P. These examples are not complete, polished solutions, but I hope they suffice to inspire you to give the REPL a try and perhaps spur you to discover the possibilities of the REPL yourself. Finally, we'll look at an alternative to a REPL: a Remote Procedure Call (RPC) server that knows how to evaluate code you send it. We'll discuss how it differs from a REPL and why you might want to prefer it to a REPL.
+
+To get started, let's take a look at R: read.
 
 ## R is for read
 
 The R in REPL is often taken to mean "to read a line from standard (or other) input". In Clojure and other Lisps, however, to "read" means to extract a **form** from a character stream. A form is *not* a string; it is [code represented as data](https://www.expressionsofchange.org/dont-say-homoiconic).
 
-Here's an example of a form:
+Here's an example of a string:
 
 ```clojure
+;; String
+"(inc 1)"
+```
+
+In contrast, here's an example of a form:
+
+```clojure
+;; Form
 (inc 1)
 ```
 
-This form is [Clojure data structure](https://clojure.org/reference/data_structures) representing a piece of code. This particular form is an [immutable list](https://clojure.org/reference/data_structures#Lists). The first element of the list is a [symbol](https://clojure.org/reference/reader#_symbols) naming the function `inc`. The second element of the list is the number `1`, an argument to that function.
+The form `(inc 1)` is a [Clojure data structure](https://clojure.org/reference/data_structures) representing a piece of code. Specifically, it is an [immutable list](https://clojure.org/reference/data_structures#Lists). The first element of the list is a [symbol](https://clojure.org/reference/reader#_symbols) naming the function `inc`. The second element of the list is the number `1`, an argument to that function.
 
-Because the form is a data structure, you can manipulate it using the functions and macros in [the Clojure standard library](https://clojure.org/api/cheatsheet). For example, you can change the `inc` (increment) to `dec` (decrement):
+Because the form is a data structure, you can manipulate it using the functions and macros in [the Clojure standard library](https://clojure.org/api/cheatsheet). For example, you can (if you really want to) change `inc` (increment) to `dec` (decrement):
 
 ```clojure
+;; rest returns everything but the first item of a sequence.
+;;
+;; cons appends a new item to the front of a sequence.
+;;
+;; The single quote tells Clojure not to evaluate (inc 1) before handing it off
+;; to rest.
 user=> (cons 'dec (rest '(inc 1)))
 (dec 1)
 ```
 
-The R in a standard Clojure REPL is based on [`read`](https://clojure.github.io/clojure/clojure.core-api.html#clojure.core/read), a function that reads forms one at a time from a character stream. By default, that character stream [is](https://clojure.github.io/clojure/clojure.core-api.html#clojure.core/*in*) the [standard input](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdin). Clojure allows you to plug in any [compatible character stream](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/io/PushbackReader.html), though.
+(The ability to alter code before evaluation might bring the word _macro_ to mind. Rightly so: having a distinct read step also powers Lisp [macros](https://aphyr.com/posts/305-clojure-from-the-ground-up-macros).)
+
+The R in a standard Clojure REPL is a slightly modified version of [`read`](https://clojure.github.io/clojure/clojure.core-api.html#clojure.core/read), a function that reads forms from a character stream, one at a time. By default, that character stream [is](https://clojure.github.io/clojure/clojure.core-api.html#clojure.core/*in*) the [standard input](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdin). Clojure allows you to plug in any [compatible character stream](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/io/PushbackReader.html), though.
 
 Here's `read` hard at work, reading a form from a character stream:
 
 ```clojure
-user=> (read (java.io.PushbackReader. (java.io.StringReader. "(+ 1 2 3)")))
-(+ 1 2 3)
+;; Turn a string into a stream of characters.
+user=> (def reader
+         (-> "(+ 1 2 3)" java.io.StringReader. java.io.PushbackReader.))
+;; Read a form from the character stream.
+user=> (read reader)
+(+ 1 2 3) ; a form, not a string
 ```
 
-By default, R passes its return value to E as is. Since in Lisp REPLs the R is customizable, though, we can make a REPL whose R does a bit more. Clojure has a function called `tap>` that's often (but not exclusively) used for [inspecting values at runtime](https://dev.to/hlship/debugging-clojure-at-the-repl-using-tap-2pm5). The trouble with using `tap>` for debugging is that it does not return the value of its argument. That makes it a bit tricky to use in some situations, such as in threading macros.
+There is a downside to reading forms one at a time, however. If you type an incomplete form such as `(inc 1` (with a missing closing parenthesis) into a REPL, by default, Clojure does not throw a syntax error. Instead, it waits for additional input, expecting to encounter the closing parenthesis eventually.
 
-We could make our own version of `tap>` that returns its argument. However, it would be a bit cumbersome to make it available everywhere. Instead, we'll make a REPL whose R supports a special symbol of our own devising, `?>`. Whenever our special R sees `?>` somewhere in the code, it rewrites that part of the code to call `tap>` such that it returns its argument.
-
-```clojure
-user=> (clojure.main/repl
-         :read
-         (fn [request-prompt request-exit]
-           ;; clojure.main/repl-read is read plus some bells and whistles.
-           (let [form (clojure.main/repl-read request-prompt request-exit)]
-             (clojure.walk/prewalk
-               (fn [sub-form]
-                 ;; If there's a form with the shape of (?> x) anywhere
-                 ;; in the code, rewrite it into (doto x tap>).
-                 (if (and (list? sub-form) (= '?> (first sub-form)))
-                   ;; doto is a macro that "pushes" its first argument
-                   ;; through all subsequent arguments (presumably
-                   ;; side-effecting functions or macros).
-                   (concat '(doto) (rest sub-form) '(tap>))
-                   sub-form))
-               form))))
-;; Print every `tap>` argument into standard output.
-user=> (add-tap (fn [x] (prn '?> x)))
-nil
-;; Try it out.
-user=> (?> (inc 2))
-?> 3 ; Standard output
-3 ; Evaluation result
-```
-
-Aside from using R to rewrite code, you can use it to change the orientation in which it reads code. A Clojure REPL reads Clojure forms by default, but there's nothing stopping you from making an R that reads from its input on a by-character or by-line basis.
-
-A standard Clojure REPL does not stop reading when it encounters a newline. This means that if you type an incomplete form such as `(inc 1` (with a missing close parenthesis) into a REPL, instead of throwing a syntax error, Clojure waits for additional input, expecting to encounter the closing parenthesis eventually.
-
-If a syntax error is what you'd prefer, you make a REPL that reads forms in a line-oriented fashion:
+Here's where customizing the R of a REPL comes into play. To have Clojure throw an error when you type an S-expression with a missing closing parenthesis, you can make a REPL that reads forms in a line-oriented fashion, rather than form-oriented. Here's one way to do it:
 
 ```clojure
 user=> (clojure.main/repl
          :read
          (fn [_ _] (read-string (read-line))))
-```
-```
-user=> (inc 1
-Execution error at user/eval1$fn (REPL:3).
-EOF while reading
+⁣user=>⁣ (inc 1
+⁣⁣Execution error at user/eval1$fn (REPL:3).
+EOF while reading⁣⁣
 ```
 
-<!--
+Here, when Clojure sees the incomplete form `(inc 1`, it throws an error instead of waiting for more input.
 
-The ability to `read` in this manner is only available to languages that [use the same data structures for both code and data](https://www.expressionsofchange.org/dont-say-homoiconic). Languages such as Java or Node.js therefore do not support "reading" in the sense Lisps do. If they did, if you typed `1 + 2 + 3` into a Node.js interpreter, Node.js would turn the string `1 + 2 + 3` into [a JavaScript array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) of items you could manipulate using the array manipulation methods built into JavaScript before handing the code off for evaluation (E).
--->
+The ability to `read` code in this manner is only available to languages that [use the same data structures for both code and data](https://www.expressionsofchange.org/dont-say-homoiconic). Languages such as Java or Node.js do not support "reading" in the sense Lisps do. If they did, if you typed `1 + 2 + 3` into a Node.js interpreter, Node.js would turn the string `1 + 2 + 3` into [a JavaScript array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) of items. You could then manipulate that array using the array manipulation methods built into JavaScript. Only then would it hand the code off for evaluation (E).
+
+Now that we know how R works and looked at a couple of different ways to customize it, let's move on to E for evaluate.
 
 ## E is for evaluate
 
-The E in REPL accepts [a form that R yields](#r-is-for-read). In most other languages, the E accepts a string, and evaluates the code in that string. In Clojure, evaluating a string yields the string itself.
+The E in REPL accepts data. Specifically, it accepts [forms R gives it](#r-is-for-read). In most other languages, E accepts a string, and evaluates the code in that string. In Clojure, evaluating a string yields the string itself. Here's an example:
 
 ```clojure
 ;; Evaluating a string.
 user=> (eval "(inc 1)")
 "(inc 1)"
+
 ;; Evaluating a form.
-;;
-;; The apostrophe tells Clojure not to evaluate (inc 1) before giving it to
-;; eval.
 user=> (eval '(inc 1))
 2
 ```
 
-E returns the evaluation result as data. It does not return a string representation of the evaluation result. This has three consequences: a) you can manipulate the input of E before evaluation, b) you can manipulate the output of E after evaluation, and c) E gives P data, not a string.
+E returns its result as data. It does *not* return a string representation of the evaluation result. This has three consequences:
 
-We can leverage the fact that E both accepts and yields data to make a REPL that, every time you redefine a function, runs the tests for that function. Here's one way to do that:
+1. You can manipulate the **input** of E.
+1. You can manipulate the **output** of E.
+1. E gives P **data**, not a string.
+
+Because E both accepts and yields data, we can, for example, make a REPL that, every time you redefine a function, runs the tests for that function. To do that, let's first write a function with a test:
 
 ```clojure
-(defn square
-  ;; :test metadata is not a common way of writing Clojure tests. I use it here
-  ;; because it makes for a self-contained and colocated example.
-  {:test (fn [] (assert (= 4 (square 2))))}
-  [x]
-  ;; The extra x here is an intentional bug to make the test fail.
-  (* x x x))
-
-(clojure.main/repl
-  :prompt (constantly nil)
-  :eval
-  (fn [form]
-    ;; Evaluate the form as per usual.
-    (let [ret (eval form)]
-      ;; After evaluation, walk through every form nested inside the top-level
-      ;; form.
-      (clojure.walk/prewalk
-        (fn [sub-form]
-          ;; If the first element of a form is defn...
-          (if (and
-                (list? sub-form)
-                (= #'clojure.core/defn (-> sub-form first resolve)))
-            (let [v (-> sub-form second resolve)]
-              ;; If the defn has a :test metadata entry...
-              (when (-> v meta :test)
-                ;; Run the tests defined in that
-                (test v)))))
-        form)
-      ret)))
+user=> (defn square
+         ;; Using :test metadata like this is not a common way of writing
+         ;; Clojure tests. I use it here because it makes for a self-
+         ;; contained and colocated example.
+         {:test #(assert (= 4 (square 2)))}
+         [x]
+         ;; The extra x here is an intentional bug to make the test fail.
+         (* x x x))
+#'user/square
 ```
 
-Once you run this REPL, every every time you evaluate the form that defines the `square` function (beginning `(defn square ...)`, your REPL will re-run the test defined in the `:test` [metadata](https://clojure.org/reference/metadata) key. That's a pretty cheap test watcher and auto-runner, in my opinion.
+To [test the test](https://knowyourmeme.com/memes/xzibit-yo-dawg), we can use [`clojure.core/test`](https://clojure.github.io/clojure/clojure.core-api.html#clojure.core/test):
 
-For real-world use, of course, you'd probably want to rewrite both the REPL and the tests themselves to use `clojure.test` instead to get more useful test output.
+```clojure
+user=> (test #'square)
+⁣⁣Execution error (AssertionError) at user/fn (NO_SOURCE_FILE:5).
+Assert failed: (= 4 (square 2))⁣⁣
+```
+
+Works great. Now that we have a function and a test, let's make a REPL:
+
+```clojure
+user=>⁣ (clojure.main/repl
+         ;; Suppress the user=> prompt for this demo.
+         :prompt (constantly nil)
+
+         :eval
+         (fn [form]
+           ;; Evaluate the form as per usual.
+           (let [ret (eval form)]
+             ;; After evaluation, walk through every form nested inside the
+             ;; top-level form given to eval (usually, a list).
+             (clojure.walk/prewalk
+               (fn [sub-form]
+                 ;; If the first element of a form is defn...
+                 (if (and
+                       (list? sub-form)
+                       (= #'clojure.core/defn (-> sub-form first resolve)))
+                   (let [v (-> sub-form second resolve)]
+                     ;; If the defn has a :test metadata entry...
+                     (when (-> v meta :test)
+                       ;; Run the tests defined in that metadata entry.
+                       (test v)))))
+               form)
+             ;; Return the return value of the evaluation.
+             ret)))
+```
+
+Once you run this REPL, every time you evaluate a form that defines a function (such as `(defn square ...)`, your REPL will re-run the test defined under the `:test` [metadata](https://clojure.org/reference/metadata) key (if any). For example, if you re-evaluate the same exact `(defn square ...)` form from above again, you get:
+
+```clojure
+⁣⁣Execution error (AssertionError) at user/fn (NO_SOURCE_FILE:5).
+Assert failed: (= 4 (square 2))⁣⁣⁣
+```
+
+You're getting a test watcher and auto-runner for pretty cheap there. And you don't have to wait for someone to implement this feature in your programming environment, either.
 
 Another useful way to customize E is to make every evaluation use a certain set of dynamic bindings. Clojure has a small number of thread-local bindings that you can use to configure [reading](#r-is-for-read), [evaluation](#e-is-for-evaluate), [printing](#p-is-for-print), and performance-related warnings.
 
-For example, if the Clojure code you're writing uses [Java interop](https://clojure.org/reference/java_interop), you almost certainly want to see warnings when Clojure has to resort to reflection to figure out which method overload to call. One way to do that is to add `(set! *warn-on-reflection true)` into your Clojure namespace, and you should always do that anyway. Sometimes you might forget, though. Luckily, you can also make an E that sets `*warn-on-reflection*` to `true` for every evaluation.
+For example, if the Clojure code you're writing uses [Java interoperability](https://clojure.org/reference/java_interop), you almost certainly want to see warnings when Clojure has to resort to reflection to figure out which method overload to call. One way to do that is to add `(set! *warn-on-reflection true)` into your Clojure namespace (and you should always do that anyway when doing Java interop). Sometimes you might forget, though. To combat your forgetful nature, you can make an E that sets `*warn-on-reflection*` to `true` for every evaluation:
 
 ```clojure
 user=> (clojure.main/repl
@@ -186,10 +196,10 @@ user=> (clojure.main/repl
            (binding [*warn-on-reflection* true]
              ;; Evaluate the form as per usual.
              (let [ret (eval form)]
-               ;; Some REPL implementations don't auto-flush after writing to the
-               ;; error stream. We'll therefore flush manually after
-               ;; evaluation to make sure the reflection warning becomes
-               ;; visible.
+               ;; Some REPL implementations don't auto-flush after writing to
+               ;; the error stream. We'll therefore flush manually after
+               ;; evaluation to make sure any possible reflection warnings
+               ;; become visible.
                (flush *err*)
                ;; Return the evaluation result.
                ret))))
@@ -200,115 +210,78 @@ user=> (clojure.main/repl
 user=> (defn upper-case
          [s]
          (.toUpperCase s))
+⁣⁣Reflection warning my.clj:3:3 - reference to field toUpperCase can't be resolved.⁣⁣
 #'user/upper-case
 ```
 
-Defining the `upper-case` function yields this reflection warning:
+Success!
 
-```
-Reflection warning, my.clj:3:3 - reference to field toUpperCase can't be resolved.
-#'user/upper-case
-```
+Now that we've seen how you can customize E to make your evaluations extra powerful, let's move on to a take a brief look at P is for print.
 
 ## P is for print
 
-The P in REPL accepts the evaluation result as data and, by default, prints it into the standard output stream. P does not accept a string representation of the evaluation result. P might *print* a string representation of the evaluation result.
+The P in REPL accepts the evaluation result as data and, by default, prints it into the standard output stream. P does *not* accept a string representation of the evaluation result. P might *print* a string representation of the evaluation result.
 
-The most obviously interesting thing to do with P is, instead of printing out the evaluation result as a string, is to send the result to a tool that can represent the evaluation result in a more useful manner. Like, say, a table:
+Perhaps the most obvious interesting thing to do with P is to send the result to a tool that can represent the evaluation result in a format more digestible than a string representation. For example, say you want to see the superclasses, fields, and methods of a Java class. Naturally, you'll reach for [`clojure.reflect/reflect`](https://clojure.github.io/clojure/clojure.reflect-api.html#clojure.reflect/reflect). To your dismay, however, you see that the string representation of the data structure it yields is too large to be digestible either inline in your editor or in a separate output panel:
 
 ```clojure
+;; Only print the first three items of each collection.
+user=> (set! *print-length* 3)
+nil
+user=> (pprint (clojure.reflect/reflect java.time.Clock))
+{:bases #{java.lang.Object java.time.InstantSource}
+ :flags #{:public :abstract}
+ :members
+ #{#clojure.reflect.Method{:name system
+                           :return-type java.time.Clock
+                           :declaring-class java.time.Clock
+                           ...}
+   #clojure.reflect.Method{:name withZone
+                           :return-type java.time.Clock
+                           :declaring-class java.time.Clock
+                           ...}
+   #clojure.reflect.Method{:name tickMillis
+                           :return-type java.time.Clock
+                           :declaring-class java.time.Clock
+                           ...}
+   ...}}
+nil
+```
+
+Luckily, the Clojure ecosystem has a [wealth](https://clerk.vision) [of](https://docs.cider.mx/cider/debugging/inspector.html) [tools](https://github.com/vlaaad/reveal) that know how to visualize Clojure data structures. We can use one of those tools to make a REPL whose P sends the evaluation result it receives from E to such a data visualizer.
+
+For this article, we'll use [Tab](https://github.com/eerohele/tab) (the decidedly least impressive such tool) to turn the big [hash map](https://clojure.org/reference/data_structures#Maps) `clojure.reflect/reflect` returns into a bunch of tables:
+
+```clojure
+;; If using Clojure 1.12 or newer, add a dependency into the Clojure runtime.
+user=> (clojure.repl.deps/add-lib 'io.github.eerohele/tab)
+[io.github.eerohele/tab]
+;; Require Tab.
 user=> (require '[tab.api :as tab])
 nil
-user=> (clojure.main/repl :print (fn [value] (tab/tab> user/tab value)))
-user=> (clojure.reflect/reflect java.time.Clock)
+;; Run Tab.
+user=> (def tab (tab/run))
+#'user/tab
+;; Run a REPL that, instead of printing every evaluation result into stdout,
+;; sends them to Tab, a tool for visualizing Clojure data as tables.
+user=> (clojure.main/repl :print (fn [value] (tab/tab> tab value)))
+;; Reflect on the nature of a Java class, the Clojure way.
+user=> (require '[clojure.reflect :as reflect])
+nil
+user=> (reflect/reflect java.time.Clock)
 ```
 
-Now, even though I like Tab for obvious reasons, it is probably the worst tool of its kind for the job. There are [much](https://clerk.vision) [better](https://github.com/djblue/portal) [ones](https://github.com/vlaaad/reveal) available.
+Here's a screenshot of Tab visualizing the output of `clojure.reflect/reflect`:
 
-## REPL vs. RPC
+!["A screenshot of Tab, a tool for visualizing Clojure data as tables."](tab.png)
 
-`<<<TODO>>>`
+(You probably can't tell from the screenshot, but the tables Tab makes are mildly interactive: you can expand, collapse, and zoom in on nested tables.)
 
-## Downsides and tradeoffs
+Whether that is more or less digestible than a pretty-printed, textual representation is a matter of taste, of course. The point is that unlike the interactive shells of many other languages, a REPL affords you the complete liberty to decide how to represent your evaluation results.
 
-`<<<TODO>>>`
+## Putting it all together
 
-
-<!--
-  Mention input/output stream rebinding!
--->
-
-<!--
-Going even further, the ability to swap in your own R, E and P means that you can reappropriate a Lisp REPL into something else altogether. You can turn a REPL into a unit-aware calculator, an interface for interacting with a large language model, or an interpreter for another programming language.
-
-Another defining feature of Lisp REPLs is that you can run a new REPL from within an existing REPL. Here's an example:
-
-```clojure
-(clojure.main/repl
-  :prompt (fn [] (println "What's your name? "))
-  :read (fn [_ _] (read-line))
-  :eval (fn [name] (printf "Hello, %s!\n" name)))
-```
-
-If you execute that code in an existing Clojure REPL, you will find yourself in a new REPL that will commence a sustained inquiry regarding your name.
-
-
-That REPLs can nest like [Matryoshka dolls](https://en.wikipedia.org/wiki/Matryoshka_doll) requires that the input of the R in the top-level REPL (the outermost doll) be unadorned with any sort of framing carrying (usually) metadata related to the code. That is, the input to R must be:
-
-```clojure
-(inc 1)
-````
-
-Instead of this:
-
-```clojure
-{:op "eval" :code "(inc 1)" :ns "user" :file "user.clj" :line "3" :column "1"}
-```
-
-If you find that the input to R is enfolded in an envelope like this, you are not sitting at a REPL, but instead a remote procedure call (RPC) server [of some sort](https://nrepl.org/nrepl/1.0/index.html).
-
-If you are, that is not a bad thing. RPC-style message framing has many benefits: being able to bundle input and metadata makes it straightforward to assign file, line and column number for use in error messages. Specifically to Clojure, having easy access to both code and the [namespace](https://clojure.org/reference/namespaces) in whose context to both read (R) and evaluate (E) said code is very helpful.
-
-```clojure
-=> {:op "eval" :code "(read)"}
-<= {:status #{:need-input}}
-=> {:op "stdin" :stdin "(inc 1)"}
-<= {:ns "user" :value "(inc 1)"}
-```
--->
-<!--
-If having a REPL as your initial communication protocol is a Matryoshka doll, having an RPC server instead is a Matryoshka doll filled with concrete.
--->
-
-
-
-<!--
-Reading needs ns context, too, because of e.g. auto-qualified keywords
-  -->
-
-<!--
-You can make your own REPL that throws an exception if the form you try to evaluate calls a deprecated function, for example. Or, instead of printing the evaluation result into the [standard output](https://www.gnu.org/software/libc/manual/html_node/Standard-Streams.html#index-stdout) stream, you can make a REPL that stores all evaluation results in a database, or sends the result to the data visualization tool of your choice.
-
-To run a new REPL, you need not abandon your existing REPL. Instead, you reappropriate
-
-The ability to do this relies on the simplicity of the protocol the REPL uses for both input and output. Contrast this with RPC-style protocols like nREPL. nREPL is short for "Network REPL". "Not a REPL" would be a more fitting moniker.
-
-<aside>Do not construe this as a criticism of nREPL. nREPL is a fine tool, and one for whose existence the Clojure community can be grateful for.</aside>
-
-```clojure
-;; Input
-{:op "eval" :code "(inc 1)"}
-
-;; Output
-{:session "4cee2336-1977-4049-af82-5c5e8ecfeebe", :ns "user", :value "2"}
-{:session "4cee2336-1977-4049-af82-5c5e8ecfeebe", :status #{:done}}
-```
-
-In fact, the ability to swap out the first three letters in "REPL" means that you can reappropriate a Lisp REPL into something else altogether. You can turn one into a unit-aware calculator, an interpreter for a completely different language, or an interface for interacting with a large language model.
--->
-
-<!--
-You can even turn a Clojure REPL into a Java, uh, "REPL", if you want. Behold:
+To see how to customize each of R, E, and P at once, let's turn a Clojure REPL into a Java shell.
 
 ```clojure
 (let [jshell (jdk.jshell.JShell/create)
@@ -319,7 +292,8 @@ You can even turn a Clojure REPL into a Java, uh, "REPL", if you want. Behold:
 
     :prompt
     (fn []
-      (print "\njshell> ")
+      (println)
+      (print "jshell> ")
       (flush))
 
     :read
@@ -341,7 +315,7 @@ You can even turn a Clojure REPL into a Java, uh, "REPL", if you want. Behold:
         events))))
 ```
 
-You can then bask in Java's exactitude and pith from the comfort of your Clojure REPL:
+Running this code lets you bask in the exactitude and pith of the Java language from the comfort of your Clojure REPL, like so:
 
 ```java
 jshell> import java.util.stream.Collectors;
@@ -354,258 +328,235 @@ jshell> stream.filter(s -> s.contains("b")).collect(Collectors.toList());
 $4 ==> [b]
 ```
 
-In contrast, reading, evaluation, and printing are not discrete steps in JShell and its ilk. You cannot nest a Clojure REPL within JShell.
--->
+It's not that turning a Clojure REPL into a Java shell is necessarily particular useful. It's that _it is possible in the first place_. Since reading, evaluation, and printing are not discrete steps in JShell and its ilk, it is not possible to turn JShell into a Clojure REPL. This is what makes JShell a shell and the Clojure REPL a REPL.
 
-<!--
-With a REPL in hand, your imagination's the limit of what you can do.
--->
+## An alternative
 
-<!--
-Inserting code into the REPL is 100% the same thing as reading the code from a file (unlike e.g. Java).
--->
-
-<!--
-1. **Read** a chunk of characters that constitute a *form* (data) into memory.
-2. **Evaluate** the form to yield a *value* (data).
-3. **Print** a string representation of the value (data).
-4. **Loop** back to the beginning.
--->
-
-<!-- The REPL is a foundational technology that's -->
-<!--
-In this article, I aim to demonstrate what sets Lisp REPLs apart from interactive shells most other languages have. My background is in Clojure. I'll therefore use Clojure in all code examples in this article. I have little to no experience with Common Lisp, Scheme, or other precursors of Clojure. I am aware that Common Lisp, for example, has a more sophisticated REPL than Clojure, but I'm unqualified to discuss the particulars of that subject.
--->
-<!--
-## Read
-
-The *read* step of REPLs is often taken to mean "to read a line from standard (or other) input". In Clojure and other Lisps, however, "reading" has a specific meaning. The [`read`](https://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node188.html#SECTION002611000000000000000) function takes a group of characters and turns them into something called a **form**. In Clojure, a [form](https://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node56.html#SECTION00910000000000000000) is any value Clojure can evaluate to produce a new value. Here are examples of forms:
-
-- `42`
-- `filter`
-- `{:a :b}`
-- `(+ 1 2)`
-
-Here's an example of reading a form from a string:
+A useful alternative to a REPL is a program that, instead of accepting unadorned Lisp forms, accepts messages wrapped in an envelope such as this:
 
 ```clojure
-user=> (read-string "(+ 1 2 3)")
-(+ 1 2 3)
+{:id 1 :op :eval :code "(inc 1)" :ns "user"}
 ```
 
-Here, `read-string` returns the form `(+ 1 2 3)`. It is an immutable list you can manipulate using the functions in the Clojure standard library. For example, given `(+ 1 2 3)`, you can change the plus to a minus:
+If you're familiar with [nREPL](https://nrepl.org/), this [message format](https://nrepl.org/nrepl/1.1/design/overview.html#requests) might look familiar to you. There are a number of benefits to using a protocol like this. For one, wrapping your code in an envelope like this allows you to bundle additional context with the code, such as the [namespace](https://clojure.org/reference/namespaces) in whose context to evaluate the code. It also allows the client to match requests with responses. This in turn makes it straightforward to, for example, display evaluation results inline in the client, next to the code you're evaluating.
+
+Additionally, an RPC-style protocol like this is amenable to extension. Besides code evaluation, you can add support for operations such as trafficking editor auto-completion information between the client and the server. In contrast, the only operation a REPL supports is evaluation. To support other operations, the client and the server would need [an auxiliary communication channel](https://groups.google.com/g/clojure-dev/c/Dl3Stw5iRVA/m/IHoVWiJz5UIJ). That decision, while [viable](https://github.com/eerohele/Tutkain/blob/8004698c9895ad0d774fccbfdf4d7f185e4fef00/clojure/src/tutkain/rpc.cljc#L197-L262), comes with its own, significant set of tradeoffs.
+
+All that said, let's try our hand at making an RPC server of our own.
 
 ```clojure
-;; *1 is a reference to the previous evaluation result; here, (+ 1 2 3).
+;; There's quite a lot of code in this sample. Feel free to skip it if you're
+;; not particularly interested in a half-baked RPC server that knows how to
+;; evaluate Clojure.
+
+(ns my.rpc
+  (:require [clojure.core :as core]
+            [clojure.pprint :as pprint]
+            [clojure.main :as main])
+  (:import (clojure.lang LineNumberingPushbackReader)
+           (java.io StringReader)))
+
+;; We'll define this function later.
+(declare handle)
+
+;; Save a reference to the standard output for print operations.
 ;;
-;; cons is a function that, given a value and a list, prepends the value into
-;; the list.
+;; *out* here could be anything you can write into: a file, s
+;; socket, a null writer, etc.
 ;;
-;; rest is a function that returns its input, sans the first element (in this
-;; case, (1 2 3).
-user=> (cons '- (rest *1))
-(- 1 2 3)
-```
+;; We'll need this later.
+(def ^{:dynamic true :doc "Original standard output."}
+  *$out$* *out*)
 
-This is obviously not a useful example. Its point is to demonstrate the malleability that having a distinct reading step offers.
-
-The ability to `read` in this manner is only available to languages that [use the same data structures for both code and data](https://www.expressionsofchange.org/dont-say-homoiconic). Languages such as Java or Node.js therefore do not support "reading" in the sense Lisps do. For example, if you type `1 + 2 + 3` into a Node.js interpreter, Node.js does not first turn the string `1 + 2 + 3` into [a JavaScript array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) of items you would then be able to manipulate using the array manipulation methods built into JavaScript. The concept of "reading" in this sense does not exists
-
-Reading being a distinct step means you can extend the default `read` implementation or replace it with your own. For example, you can make a reader function that it otherwise the same as the regular `read` function, except that it throws an exception if you try using a deprecated function or macro.
--->
-<!--
-
-Here's a Clojure function that, given a form, throws an exception if there's a reference to a deprecated [Var](https://clojure.org/reference/vars) anywhere in the form. (Understanding the function requires some fluency in Clojure. If you don't have that, just skip it: the implementation details are not important here.)
-
-```clojure
-(defn throw-on-deprecated
-  "Given a form, throw an exception if the form refers to a deprecated var."
-  [form]
-  (when (seq? form)
-    (clojure.walk/prewalk
-      (fn [form]
-        (when (symbol? form)
-          (let [v (resolve form)]
-            (when (-> v meta :deprecated)
-              (throw (ex-info (format "Call to deprecated var: %s." (pr-str v))
-                       {:var v})))))))))
-```
-
-To use the function above, you'd use `clojure.main/repl`, which allows you to swap out your own implementations of reading, evaluation, and printing:
-
-```clojure
-;; Run a new REPL that throws an exception when it reads a form that refers to
-;; a deprecated var.
-user=> (clojure.main/repl
-         :read
-         (fn [_ _]
-           (doto (read *in*) throw-on-deprecated)))
-user=> (inc 1)
-2
-user=> (replicate 1 2)
-```
-
-Yields:
-
-```
-Execution error (ExceptionInfo) at user/eval8195$fn$fn (user:NO_SOURCE_FILE).
-Call to deprecated var: #'clojure.core/replicate.
-```
-
--->
-<!--
-## Evaluate
-
-The `eval` function accepts a form and returns data.
--->
-<!-- binding example! e.g. print-length, etc. maybe warn-on-reflection? -->
-<!-- The only limits that apply to customizing your REPL are the limits of your programming language. -->
-<!--
-Given:
-
-```clojure
-(clojure.main/repl
-  :eval
-  (fn [form]
-    (binding [*warn-on-reflection* true]
-      (let [ret (eval form)]
-        ;; Some REPL implementations don't auto-flush after writing to the
-        ;; error stream. We'll therefore flush manually after
-        ;; evaluation to make sure the reflection warning becomes
-        ;; visible.
-        (flush *err*)
-        ret))))
-```
-
-Then:
-
-```clojure
-(defn upper-case
+(defn read-string*
+  "Like clojure.core/read-string, but retains line and column numbers."
   [s]
-  (.toUpperCase s))
+  (with-open [reader (-> s StringReader. LineNumberingPushbackReader.)]
+    (read reader)))
+
+;; Define the default R, E, and P for our RPC server.
+(def default-options
+  {:read read-string*
+   :eval eval
+   ;; Pretty-print evaluation results by default, because we can.
+   :print pprint/pprint
+   ;; As a bonus, allow users to specify a custom init function to e.g. load
+   ;; additional code upon startup.
+   :init (fn []
+           (require '[clojure.repl :refer [doc]])
+           (require '[clojure.pprint :refer [pp]]))})
+
+;; Define a function that runs an RPC-style server.
+(defn rpc
+  ([] (rpc {}))
+  ([options]
+   (let [{:keys [init] :as options} (merge default-options options)]
+     ;; Call the user-supplied init function.
+     (init)
+
+     (loop []
+       ;; Read a message from the standard input for read operations.
+       (let [{:keys [id] :as message} (read *in*)
+
+             recur?
+             ;; Rebind standard output such that any print operations are
+             ;; wrapped in an envelope (i.e. {:tag :out :val "Hello, world!"})
+             (binding [*out* (PrintWriter-on
+                                    (fn [x]
+                                      ;; Print everything such that it can be
+                                      ;; read (via clojure.core/read).
+                                      (binding [*print-readably* true]
+                                        ;; Write into the standard output writer
+                                        ;; we saved a reference to earlier.
+                                        (.write *$out$*
+                                          ;; Give the response the ID of the
+                                          ;; request.
+                                          (pr-str {:id id :tag :out :val x}))
+                                        (.write *$out$* "\n")
+                                        (.flush *$out$*)))
+                                    nil)]
+               (try
+                 ;; Send :quit to exit the loop.
+                 (when-not (identical? message :quit)
+                   (try
+                     (handle
+                       (->
+                         (merge options message)
+                         ;; Set the value of the :reply key to a function that
+                         ;; handlers can use to send a reply to the client.
+                         (assoc :reply
+                           (fn [response]
+                             ;; Rebind standard output and to the original standard
+                             ;; output.
+                             ;;
+                             ;; Without this, evaluation results would get
+                             ;; double-wrapped like this:
+                             ;;
+                             ;; {:tag :out :val "{:tag :ret :val \"...\"}"}
+                             (binding [*out* *$out$*]
+                               ;; Print the response into the standard output.
+                               (prn (merge {:id id} response)))))))
+                     (catch Exception ex
+                       (set! *e ex)
+                       (binding [*out* *$out$*]
+                         (prn {:id id
+                               :tag :err
+                               :val (pr-str (Throwable->map ex))}))))
+                   ;; Return true to recur.
+                   true)
+                 (catch Exception _
+                   ;; We'll ignore exception handling here and just exit the
+                   ;; loop if anything goes wrong.
+                   false)))]
+         ;; Only recur if no exceptions were thrown within the loop.
+         (when recur? (recur)))))))
+
+;; Define a multimethod for handling different kinds of messages to our RPC
+;; server.
+(defmulti handle :op)
+
+;; Define a handler for evaluation operations.
+(defmethod handle :eval
+  ;; Use user-supplied (or default) R, E, and P.
+  [{:keys [read eval print reply code]}]
+  (try
+    (let [form (read code)
+          ret (eval form)]
+      (set! *3 *2)
+      (set! *2 *1)
+      (set! *1 ret)
+      (reply {:tag :ret :val (with-out-str (print ret))}))
+    (catch RuntimeException ex
+      (reply {:tag :err :val (-> ex main/ex-triage main/ex-str)}))))
+
+;; Fallback if the client sends an :op we don't recognize.
+(defmethod handle :default
+  [{:keys [op]}]
+  (throw (ex-info "Not implemented" {:op op})))
 ```
 
-Yields:
-
-```
-Reflection warning, my.clj:3:3 - reference to field toUpperCase can't be resolved.
-#'user/upper-case
-```
-
-## Print
+All right! Let's give it a try:
 
 ```clojure
-(clojure.main/repl
-  :print (fn [value] (tab.api/tab> user/tab value)))
-
-(clojure.reflect/reflect java.time.Clock)
+user=> (rpc)
+{:id 1 :op :eval :code "(inc 1)"} ; Request
+{:id 1 :tag :ret :val "2\n"} ; Response
 ```
 
-## Tradeoffs
+Looks like it works! What about prints to standard output?
 
-The
-
-
-- Discuss intermingling of evaluation results and standard output
-- Discuss difficulty of clients linking inputs to outputs (e.g. inline results)
--->
-
-<!--
-When you build on a REPL, you (or your editor) could easily swap between REPL and RPC communication modes. In contrast, it is not possible to go from RPC to REPL.
-
-Demonstrate nesting REPLs and escaping back into the
--->
-
-<!--
-Nested REPL that:
-- Stores the previous input and output or exception
-- Submits them to ChatGPT for analysis.
--->
-
-<!--
-- ChatGPT example
-- use clojure.main/repl
--->
-
-<!-- ClojureScript eval yields strings, not data -->
-
-<!--
-nREPL and other RPC-style protocols complect (drink) reading and evaluation: since there is no separate read step, it is not possible to customize.
-
-Can't use nREPL to start a ChatGPT REPL.
--->
-
-<!--
-The REPL is a substrate. It is the simplest possible protocol: character streams in, character streams out.
--->
-
-<!--
-Being a Lisp, Clojure has a plethora of REPLs. It has [nREPL](https://nrepl.org), which is probably the most widely used tool of any kind in the entire Clojure ecosystem. Clojure has a built-in [REPL](https://clojure.github.io/clojure/clojure.main-api.html#clojure.main/repl), which you can [serve over a network socket](https://clojure.org/reference/repl_and_main#_launching_a_socket_server). Clojure also has [prepl](https://clojuredocs.org/clojure.core.server/prepl), a (strangely underdocumented) REPL that almost no one uses, which yields "structured output (for programs)." There's also [Unrepl](https://github.com/Unrepl/unrepl), which upgrades Clojure's built-in REPL or (nREPL, somehow, apparently) to use an extensible protocol for communicating with the Clojure runtime.
--->
-
-<!--
-- REPL to RPC vs. RPC to REPL
-- Nested REPLs (ClojureScript, nREPL)
--->
-
-<!--
-A computer program is a list of instructions that tell a computer what to do.
-![REPL](images/repl.svg)
-
-For the past couple of years, I’ve been on this fool’s errand to make [my favorite text editor](https://www.sublimetext.com) a viable alternative for programming Clojure.
-
-Like with most projects, in the beginning, I had no idea what I was doing. (I’m not sure I still do, to be honest.) All I knew was that I wanted to evaluate Clojure code directly from my editor and see the result.
--->
-
-<!--
-Like, I wanted to be able to do things like this:
-
-First, I want to write a function definition in my editor, like this:
-
-![REPL](images/repl-1.png)
-
-Then, I want to be able to write code that calls that function
-
-![REPL](images/repl-2.png)
-
-Finally, I want to be able to execute that function call by hitting a key binding in my editor and have the result show up in my editor.
-
-
-![REPL](images/repl-3.png)
-
- I’ve since realized that back then, and for a long time after, I didn’t even know what a REPL actually was. Most Clojure programmers, I’m sure, are in the same boat.
-
-Most programmers have probably never really even thought about it too much, really. I mean, a REPL is this thing where type code and the computer gives you back the result. Right? That’s the way I thought about it, at least.
--->
-
-<!--
-  # What's in a REPL?
-
-Most programmers recognize the acronym "REPL". When they hear "REPL", they think of this thing where you type in code and the computer prints the answer. You know, [`irb`](https://github.com/ruby/irb) for Ruby, [GHCi](https://downloads.haskell.org/~ghc/9.0.1/docs/html/users_guide/ghci.html) for Haskell, [`node`](https://nodejs.org/api/repl.html#repl_repl) for Node.js, and so on.
-
-- irb, GHCi, etc. don't really have R
-  - typing code into these has different semantics than specifying code in files
-  - Rubyists, Haskellers, etc. typically don't sit at their interactive prompts all day every day developing programs
-  - cf. Lisp
-- What is "Socket REPL"
-  - socket server is actually a more generic thing
-  - prepl is just a different accept function
-- nREPL is not really a REPL
-  - "E" is not really "E"
--->
-
-<!--
-  ```clojure
-(let [a (atom [])]
-  (clojure.main/repl
-    :read
-    (fn [request-prompt request-exit]
-      (if
-        (zero? (count @a)) (do (swap! a conj (read-line)) request-prompt)
-        (take 2 (swap! a conj (read-line)))))
-
-    :eval
-    (fn [[from to]]
-      (println (clojure.java.process/exec "units" from to)))))
+```clojure
+{:id 2 :op :eval :code "(println :hello)"} ; Request
+{:id 2 :tag :out :val ":hello\n"} ; Print output
+{:id 2 :tag :ret :val "nil\n"} ; Response
 ```
-  -->
+
+Just what we wanted: we can easily distinguish between prints (`:out`) and evaluation results (`:ret`) so that the client can handle them differently. Additionally, every request and response has an `:id` so that we can easily match responses with requests on the client.
+
+All right, the basics seem to work fine. What if we try something wild, like running a new REPL?
+
+```clojure
+{:id 3
+ :op :eval
+ :code "(clojure.main/repl :read clojure.core.server/repl-read)"} ; Request
+{:id 3 :tag :out :val "user=> "} ; Print output
+{:id 3 :tag :out :val "user=> "} ; Print output
+```
+
+Hmm. Not sure why the `user=>` prompt got printed twice, but let's just ignore that for now. Let's try evaluating something:
+
+```clojure
+{:id 5 :op :eval :code "(inc 1)"} ; Request
+{:id 4 :tag :out :val "{:id 5, :op :eval, :code \"(inc 1)\"}\n"} ; Print output
+{:id 4 :tag :out :val "user=> "} ; Print output
+```
+
+Oh, of course. Our RPC server expects envelopes (`{:id 1 :op :eval ...}`), but the REPL we ran within expects plain Clojure forms.
+
+Let's try giving it one of those:
+
+```clojure
+(inc 1) ; Request
+{:id 4 :tag :out :val "2\n"} ; Print output
+{:id 4 :tag :out :val "user=> "} ; Print output
+```
+
+It worked otherwise, but now we're in a bit of a limbo: the input is not in an envelope, but the output is. Also, both evaluation results and prints have the `:out` tag.
+
+Since we saved a reference to the original output stream, we can solve this problem. Let's first quit the REPL we're currently in:
+
+```clojure
+;; clojure.core.server/repl-read is a function that quits the current REPL if
+;; you send it :repl/quit, so let's do that.
+:repl/quit ; Request
+{:id 3 :tag :ret :val "nil\n"} ; Response
+```
+
+Then, let's run a new REPL that prints all output into the original output stream we saved a reference to (`*$out$*`):
+
+```clojure
+{:id 6
+ :op :eval
+ :code "(binding [*out* my.rpc/*$out$*] (clojure.main/repl))"} ; Request
+;; Double prompt again for some reason. Likely need to pass :prompt or
+;; :need-prompt to clojure.main/repl to fix.
+my.rpc=> my.rpc=> (inc 1) ; Request
+2 ; Print output
+my.rpc=> ; Print output
+```
+
+Voilà! We finally managed to escape the confines of the RPC envelope.
+
+It did take a bit of work, though, and we made some assumptions along the way. For example, we assumed that the client using our RPC server knows when to send and receive framed messages and when not. We also assumed that it is acceptable that the client must be aware of `my.rpc/*$out$*` to escape message framing. Furthermore, we assumed that the client can either parse [EDN](https://github.com/edn-format/edn), or that the client and the server can talk using some other [shared language](https://nrepl.org/nrepl/1.1/design/transports.html#bencode-transport).
+
+While the RPC protocol has many benefits, it is slightly more complex than a REPL. The REPL is almost brutal in its simplicity: put code in, get results out. Upgrade to a different protocol if you want. Switching from RPC to REPL is possible, but it's a bit more work than switching from REPL to RPC (or, indeed, switching from REPL to another type of REPL).
+
+## Closing words
+
+We've looked at each of the main ingredients of the REPL: read, evaluate, and print. (There's not much to say about loop: it just goes back to R.) We've seen how each of them works, what it means to customize them, and why you might want to do that. We've looked at what sets Lips REPLs apart from the interactive shells in other languages. Finally, we implemented an alternative to a REPL that has some of the same features as a REPL, but a slightly different set of tradeoffs.
+
+What we haven't discussed is the tooling around REPLs. To my knowledge, the only Clojure programming environments that support REPLs are [inf-clojure](https://github.com/clojure-emacs/inf-clojure) for Emacs and [Tutkain](http://tutkain.flowthing.me), which is a tool I've made for myself. Unfortunately, Tutkain's support for REPLs is not great. That is partly because I haven't invested enough time to make it great, and partly because [Sublime Text doesn't expose an API](https://github.com/sublimehq/sublime_text/issues/6058) that would, I think, help make REPL interactions more fluent.
+
+So, in the end, all I've probably done is waste your time talking about a tool you probably won't end up using anyway.
+
+Perhaps, though, it helps spark some interest in exploring the possibilities of tooling where reading, evaluating, and printing are distinct, composable steps. You never know.

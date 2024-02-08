@@ -50,6 +50,8 @@ The docstring of `seque` goes on to say that `seque` expects to receive a **lazy
 ;;=> (0 1 2 3 4 5 6 7 8 9)
 ```
 
+A concrete seq, in turn, is one whose values are all already realized. For example, the vector `[1 2 3]` is a concrete seq, because we already know its each element. There is nothing left to compute.
+
 The docstring says `seque` expects a *presumably lazy* seq. What does that mean? If the seq is not lazy, it is concrete. If it is concrete, there is no need to produce anything, because every element in the sequence has already been produced. It does not make sense to call `seque` on it. Therefore, `seque` is only useful if its argument contains elements that have not yet been computed.
 
 <!-- The docstring says that `seque` creates a **queued seq**. What is a queued seq? -->
@@ -79,7 +81,7 @@ Not terribly exciting. We just get back the original range we gave to `seque`. I
 ;; Elapsed time: 0.095492 msecs
 ```
 
-The reason we see no difference is that realizing a range takes very little time. Doing it in the background isn't useful.
+The reason we see no difference is that realizing a range this short takes very little time. Doing it in the background isn't useful.
 
 Maybe we should try calling `seque` on a seq that takes longer to realize. To do that, let's first make a slow function. Here's `slow-inc`, a function that increments a number, but takes its sweet time doing it:
 
@@ -111,11 +113,11 @@ Cool! We can now use `slow-inc` to write a function that returns a lazy seq of i
 
 Oh yeah, nice and slow.
 
-We now have a function that returns a lazy seq that yields elements at a rate of one per second. We can now see what happens if we give a lazy seq made by `lazy-nums` to `seque`.
+We now have a function that returns a lazy seq that yields elements at a rate of one per second. Now, let's see what happens if we give a lazy seq made by `lazy-nums` to `seque`.
 
 ```clojure
 (do
-  ;; Set off a seque that produces at most five elements from its input before
+  ;; Start a seque that produces at most five elements from its input before
   ;; stopping to wait for the consumer.
   (def seque-of-numbers (seque 5 (lazy-nums)))
 
