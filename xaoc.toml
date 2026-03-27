@@ -4,3 +4,7 @@ homepage = "/about"
 author = "Eero Helenius"
 description = "A litany of cogitations on code and other things."
 language = "en-us"
+blogroll = [
+  { name = "John Jacobsen", uri = "http://johnj.com/" },
+  { name = "Existing by coincidence, programming deliberately", uri = "https://philbooth.me/blog" },
+]
