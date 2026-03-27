@@ -4,6 +4,10 @@ date: 2024-02-20
 description: What sets Lisp REPLs apart from the interactive shells many other languages have?
 ---
 
+>One of the most appealing features of Lisp is that it is interactive, as contrasted with most other higher-level languages, which are noninteractive.
+>
+>—Douglas Hofstadter, "Lisp: Atoms and Lists" (1983)
+
 >It is common to conflate any interactive language prompt with a REPL, but I think it is an important aspect of Lisp REPLs that they are a composition of  read-eval-print.
 >
 >—Rich Hickey, "A History of Clojure" (2020)
@@ -273,7 +277,7 @@ user=> (reflect/reflect java.time.Clock)
 
 Here's a screenshot of Tab visualizing the output of `clojure.reflect/reflect`:
 
-!["A screenshot of Tab, a tool for visualizing Clojure data as tables."](tab.png)
+<img src="tab.webp" alt="A screenshot of Tab, a tool for visualizing Clojure data as tables."/>
 
 (You probably can't tell from the screenshot, but the tables Tab makes are mildly interactive: you can expand, collapse, and zoom in on nested tables.)
 
@@ -555,7 +559,7 @@ While the RPC protocol has many benefits, it is slightly more complex than a REP
 
 We've looked at each of the main ingredients of the REPL: read, evaluate, and print. (There's not much to say about loop: it just goes back to R.) We've seen how each of them works, what it means to customize them, and why you might want to do that. We've looked at what sets Lips REPLs apart from the interactive shells in other languages. Finally, we implemented an alternative to a REPL that has some of the same features as a REPL, but a slightly different set of tradeoffs.
 
-What we haven't discussed is the tooling around REPLs. To my knowledge, the only Clojure programming environments that support REPLs are [inf-clojure](https://github.com/clojure-emacs/inf-clojure) for Emacs and [Tutkain](http://tutkain.flowthing.me), which is a tool I've made for myself. Unfortunately, Tutkain's support for REPLs is not great. That is partly because I haven't invested enough time to make it great, and partly because [Sublime Text doesn't expose an API](https://github.com/sublimehq/sublime_text/issues/6058) that would, I think, help make REPL interactions more fluent.
+What we haven't discussed is the tooling around REPLs. To my knowledge, the only Clojure programming environments that support REPLs are [inf-clojure](https://github.com/clojure-emacs/inf-clojure) for Emacs and [Tutkain](http://tutkain.flowthing.me), which is a tool I've made for myself. Sublime Text introduced [IO panels in build 4198](https://www.sublimetext.com/dev#changelog), which opens up new possibilities for improving Tutkain's REPL support.
 
 So, in the end, all I've probably done is waste your time talking about a tool you probably won't end up using anyway.
 
